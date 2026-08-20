@@ -33,8 +33,9 @@ Subcommands:
 
 - ``migrate``           read the job, print the migration SQL (dry-run).
 - ``migrate --apply``   also execute it.
-- ``check``             exit 0 if the database already matches, 1 if changes
-                        are needed (analogous to ``gnr db migrate --check``).
+- ``check``             exit 0 if the database can host the application without
+                        additive changes, 1 if additions/alterations are needed.
+                        Extra database objects are intentionally compatible.
 
 Only PostgreSQL is wired today (the producer path Genropy needs first).
 """
@@ -83,7 +84,7 @@ def _cmd_migrate(job, apply):
 
 
 def _cmd_check(job):
-    """Return the diff SQL (empty string means aligned)."""
+    """Return required additive SQL (empty means application-compatible)."""
     migrator = _build_migrator(job)
     migrator.prepareMigrationCommands()
     return migrator.getChanges()
@@ -102,8 +103,11 @@ def main(argv=None):
     p_migrate.add_argument("--apply", action="store_true",
                            help="execute the SQL, not just print it")
 
-    sub.add_parser("check", help="exit 1 if the database needs changes, "
-                                 "0 if it already matches")
+    sub.add_parser(
+        "check",
+        help="exit 1 if additive changes are needed, 0 if the database can "
+             "already host the application",
+    )
 
     args = parser.parse_args(argv)
     job = _read_job(sys.stdin)
@@ -123,7 +127,7 @@ def main(argv=None):
             if not sql.endswith("\n"):
                 sys.stdout.write("\n")
             return 1  # changes needed
-        return 0  # aligned
+        return 0  # application-compatible; extra database objects are allowed
 
     parser.error(f"unknown command: {args.command}")  # unreachable
 

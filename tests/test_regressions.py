@@ -20,9 +20,16 @@ Package-specific: ``ormStructure`` is injected by the caller, so
 preserve the injected value (the legacy ``OrmExtractor`` wiring was removed).
 """
 
+import copy
 from unittest.mock import MagicMock
 
-from genro_sqlmigration import SqlMigrator, new_index_item, new_relation_item
+from genro_sqlmigration import (
+    SqlMigrator,
+    new_index_item,
+    new_relation_item,
+    new_schema_item,
+    new_structure_root,
+)
 from genro_sqlmigration.command_builder import CommandBuilderMixin
 from genro_sqlmigration.readers import PgReader
 from genro_sqlmigration.structures import nested_defaultdict
@@ -203,3 +210,44 @@ class TestOrmStructureInjection:
         migrator.ormStructure = injected
         migrator.extractOrm()
         assert migrator.ormStructure is injected
+
+
+class TestAdditiveCompatibilityDiff:
+    """Database metadata and extra objects do not define compatibility."""
+
+    def test_database_name_is_descriptive_metadata(self):
+        migrator = SqlMigrator(MagicMock())
+        migrator.sqlStructure = new_structure_root('live_database')
+        migrator.ormStructure = new_structure_root('model_database')
+
+        assert list(migrator.dictDifferChanges()) == []
+
+    def test_non_attribute_scalar_change_does_not_crash(self):
+        migrator = SqlMigrator(MagicMock())
+        migrator.sqlStructure = new_structure_root('database')
+        migrator.sqlStructure['root']['schemas']['public'] = new_schema_item('public')
+        migrator.ormStructure = copy.deepcopy(migrator.sqlStructure)
+        migrator.ormStructure['root']['schemas']['public']['schema_name'] = 'other'
+
+        assert list(migrator.dictDifferChanges()) == [
+            ('changed', {
+                'item': migrator.ormStructure['root']['schemas']['public'],
+                'changed_attribute': 'schema_name',
+                'oldvalue': 'public',
+                'newvalue': 'other',
+                'entity': 'schema',
+                'entity_name': 'public',
+            })
+        ]
+
+    def test_extra_database_objects_require_no_additive_sql(self):
+        migrator = SqlMigrator(MagicMock())
+        migrator.sqlStructure = new_structure_root('database')
+        migrator.sqlStructure['root']['schemas']['legacy'] = new_schema_item('legacy')
+        migrator.ormStructure = new_structure_root('database')
+        migrator.prepareStructures = MagicMock()
+        migrator.readOnly_schemas = []
+
+        migrator.prepareMigrationCommands()
+
+        assert migrator.getChanges() == ''

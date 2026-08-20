@@ -22,6 +22,9 @@ execution.
 - **Deterministic entity matching**: FK/UNIQUE/index names are
   structural hashes computed from schema + table + columns, so
   renaming never causes spurious diffs.
+- **Additive compatibility check**: success means the database can host the
+  application without further additive changes, not that both structures are
+  identical. Extra database objects are preserved; renames are never inferred.
 - **Safe by default**: destructive commands (DROP) are disabled unless
   explicitly enabled; type conversions can be forced and backed up.
 - **Minimal runtime dependencies**: `dictdiffer`, plus the DB driver

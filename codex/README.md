@@ -26,33 +26,31 @@ Valutazione indicativa: **7/10**.
 
 ## P0 — Pipeline CI
 
-- [ ] Correggere le dipendenze della suite di test. Il workflow installa
+- [x] Correggere le dipendenze della suite di test. Il workflow installa
   `.[dev]`, ma diversi moduli di test importano direttamente `psycopg`,
   `pymysql` e `pymssql`.
-- [ ] Separare chiaramente i test unitari dai test d'integrazione per PostgreSQL,
+- [x] Separare chiaramente i test unitari dai test d'integrazione per PostgreSQL,
   MySQL e MSSQL, usando marker dichiarati e job dedicati.
-- [ ] Eseguire Ruff e mypy nella CI, oltre a pytest.
-- [ ] Aggiungere Python 3.13 alla matrice oppure rimuovere temporaneamente il
+- [x] Eseguire Ruff e mypy nella CI, oltre a pytest.
+- [x] Aggiungere Python 3.13 alla matrice oppure rimuovere temporaneamente il
   relativo classifier dal pacchetto.
-- [ ] Definire una soglia minima di coverage, distinta tra core e adapter che
+- [x] Definire una soglia minima di coverage, distinta tra core e adapter che
   richiedono database esterni.
 
 ## P1 — Correttezza delle migrazioni
 
-- [ ] Rendere esplicita la semantica delle rimozioni. Attualmente, anche con
-  `removeDisabled=False`, solo la rimozione di colonne genera SQL; tabelle,
-  indici, relazioni, constraint, estensioni ed event trigger sono no-op.
-- [ ] Evitare che `check` segnali un database come allineato quando esistono
-  differenze che non producono comandi SQL. Il risultato dovrebbe distinguere
-  almeno tra: allineato, differenze applicabili, differenze ignorate e
-  differenze non supportate.
+- [x] Documentare che `check` verifica la compatibilità additiva: il database
+  può ospitare l'applicazione senza ulteriori migrazioni, ma non deve essere
+  strutturalmente identico al modello.
+- [x] Correggere gli eventi `change` esterni ad `attributes`, che oggi possono
+  causare un `ValueError` (caso osservato: `root.entity_name` differente).
+- [x] Conservare intenzionalmente gli oggetti presenti soltanto nel database:
+  nessun DROP implicito e nessun rename inferito da remove più add.
 - [ ] Aggiungere un'opzione di esecuzione atomica per i database che supportano
   DDL transazionale. L'autocommit attuale può lasciare migrazioni parzialmente
   applicate.
 - [ ] Produrre un report strutturato delle operazioni ignorate o non supportate,
   non soltanto una stringa SQL eventualmente vuota.
-- [ ] Definire una strategia esplicita per rename di tabelle e colonne, evitando
-  che siano interpretati automaticamente come drop più add.
 
 ## P1 — Sicurezza operativa
 

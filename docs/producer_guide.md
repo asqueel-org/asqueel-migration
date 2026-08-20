@@ -23,6 +23,22 @@ human JSON or XML compiles to the identical internal structure. Both
 compilers are thin front-ends over the same factories, so every
 normalization rule below applies to both.
 
+## Compatibility is additive
+
+The migration check answers a compatibility question: **can this database host
+the application without further additive changes?** It does not certify that
+the live database and the model are structurally identical.
+
+Objects that exist only in the database are therefore compatible and are
+preserved by default. A successful check may coexist with legacy tables,
+columns, indexes or constraints that the application model does not mention.
+The model's root database name is descriptive metadata; the connection selects
+the actual target database.
+
+Renames are not inferred. Without an explicit rename syntax, a producer must
+not expect a remove/add pair to be interpreted as a rename. Likewise, no DROP
+is implied by the compatibility check.
+
 ## 1. End-to-end quickstart (human JSON)
 
 ```python

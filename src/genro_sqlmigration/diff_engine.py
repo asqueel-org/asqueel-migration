@@ -67,10 +67,22 @@ class DiffMixin:
             generator: Iterator of triples ``(event, path, changes)``
             produced by ``dictdiffer``.
         """
-        return dictdiffer.diff(
-            self.sqlStructure or {'root': {}},
-            self.ormStructure
-        )
+        sql_structure = self.sqlStructure or {'root': {}}
+        orm_structure = self.ormStructure
+        sql_root = sql_structure.get('root', {})
+        orm_root = orm_structure.get('root', {})
+        if sql_root.get('entity_name') and orm_root.get('entity_name'):
+            # The target database is selected by the connection. Once it
+            # exists, its name is descriptive metadata and does not affect
+            # whether it can host the application. Use shallow copies so the
+            # caller-injected structures remain untouched.
+            sql_structure = dict(sql_structure)
+            sql_structure['root'] = dict(sql_root)
+            sql_structure['root'].pop('entity_name', None)
+            orm_structure = dict(orm_structure)
+            orm_structure['root'] = dict(orm_root)
+            orm_structure['root'].pop('entity_name', None)
+        return dictdiffer.diff(sql_structure, orm_structure)
 
     def dictDifferChanges(self):
         """Normalize dictdiffer output into typed events.
@@ -108,7 +120,26 @@ class DiffMixin:
             # of an existing entity's attributes, not an add/remove of the entity
             attributes_index = self.get_attributes_index_in_path(pathlist)
 
-            if attributes_index > 0:
+            if diffevent == 'change' and attributes_index < 0:
+                # Structural metadata normally matches by construction, but a
+                # malformed or hand-built structure must not crash the diff
+                # normalizer. Represent the scalar change consistently and let
+                # the command dispatcher decide whether it is actionable.
+                item = self.get_item_from_pathlist(
+                    self.ormStructure, pathlist[:-1]
+                )
+                if not isinstance(item, dict) or 'entity' not in item:
+                    continue
+                oldvalue, newvalue = difflist
+                yield 'changed', {
+                    'item': item,
+                    'changed_attribute': pathlist[-1],
+                    'oldvalue': oldvalue,
+                    'newvalue': newvalue,
+                    'entity': item['entity'],
+                    'entity_name': item['entity_name'],
+                }
+            elif attributes_index > 0:
                 # --- CHANGED event ---
                 # Navigate up to the entity node in the ORM to get updated data
                 kw = {}
@@ -187,4 +218,3 @@ class DiffMixin:
         if 'attributes' in pathlist:
             return pathlist.index('attributes')
         return -1
-
