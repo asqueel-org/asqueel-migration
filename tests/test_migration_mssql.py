@@ -10,13 +10,15 @@ Model: real schemas inside one database. The database
 then schemas ``alfa`` and ``beta`` live inside it.
 """
 
-import pymssql
 import pytest
 
 from genro_sqlmigration import SqlMigrator
 
 from .support.mssql_database import MssqlContainer, MssqlTestDatabase
 from .support.orm_producer import OrmJsonProducer, SrcModel
+
+pymssql = pytest.importorskip('pymssql')
+pytestmark = pytest.mark.mssql
 
 DBNAME = 'test_gsm_mssql'
 

@@ -13,6 +13,8 @@ import pytest
 
 from genro_sqlmigration.editor_service import introspect_to_xml, migrate_from_xml
 
+pytestmark = pytest.mark.postgresql
+
 SEED_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <db xmlns="urn:genro:sql-model:1.0" name="test">
   <schema name="public">

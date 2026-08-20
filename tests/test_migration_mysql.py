@@ -6,7 +6,6 @@ Direct pymysql queries verify the applied structure. The module is
 skipped when Docker is unavailable.
 """
 
-import pymysql
 import pytest
 
 from genro_sqlmigration import SqlMigrator
@@ -17,6 +16,9 @@ from .support.mysql_database import (
     stop_mysql_container,
 )
 from .support.orm_producer import OrmJsonProducer, SrcModel
+
+pymysql = pytest.importorskip('pymysql')
+pytestmark = pytest.mark.mysql
 
 DBNAME = 'test_gsm_mysql'
 

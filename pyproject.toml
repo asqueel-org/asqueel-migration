@@ -101,6 +101,8 @@ addopts = "-v --cov=genro_sqlmigration --cov-report=term-missing --cov-report=ht
 markers = [
     "postgresql: marks tests as requiring a PostgreSQL database (deselect with '-m \"not postgresql\"')",
     "sqlite: marks tests as requiring SQLite (deselect with '-m \"not sqlite\"')",
+    "mysql: marks tests as requiring a live MySQL database and Docker",
+    "mssql: marks tests as requiring a live Microsoft SQL Server database and Docker",
 ]
 
 [tool.black]
