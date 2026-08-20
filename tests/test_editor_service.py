@@ -9,6 +9,7 @@ live database yields XML that describes them — the DB → XML → edit → mig
 loop end to end.
 """
 
+import psycopg
 import pytest
 
 from genro_sqlmigration.editor_service import introspect_to_xml, migrate_from_xml
@@ -35,9 +36,15 @@ SEED_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 @pytest.fixture
 def conn(pg_server):
-    params = dict(pg_server)
-    params.setdefault("dbname", "test")  # testing.postgresql default database
-    return params
+    dbname = "test"
+    admin = dict(pg_server, dbname="postgres")
+    with psycopg.connect(**admin, autocommit=True) as connection:
+        connection.execute(f'DROP DATABASE IF EXISTS "{dbname}" WITH (FORCE)')
+        connection.execute(f'CREATE DATABASE "{dbname}"')
+    params = dict(pg_server, dbname=dbname)
+    yield params
+    with psycopg.connect(**admin, autocommit=True) as connection:
+        connection.execute(f'DROP DATABASE IF EXISTS "{dbname}" WITH (FORCE)')
 
 
 def test_migrate_then_introspect_roundtrip(conn):
