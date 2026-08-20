@@ -142,11 +142,12 @@ infer renames and does not remove extra database objects by default.
 
 ### Local editor trust boundary
 
-The optional editor in `genro_sqlmigration.app` is intended only for a
-developer working on their own machine. Run it on `127.0.0.1`; the application
-also rejects ASGI clients whose peer address is not loopback. It is not a
-multi-user database administration service and must not be published through a
-reverse proxy.
+The optional editor in `genro_sqlmigration.app` requires Python 3.11 or newer
+and is intended only for a developer working on their own machine. The core
+library still supports Python 3.10. Run the editor on `127.0.0.1`; the
+application also rejects ASGI clients whose peer address is not loopback. It is
+not a multi-user database administration service and must not be published
+through a reverse proxy.
 
 All REST operations use POST `application/json` bodies. The application rejects
 query strings, so connection passwords do not enter URLs or access logs, and

@@ -140,9 +140,10 @@ changes. Objects already created are retained; no DROP or rename is inferred.
 
 ## Local development editor
 
-The optional HTTP/MCP editor is a **local development tool**. It is not a
-remotely deployable administration service and has no user-management system.
-Start it on the loopback interface (the CLI default):
+The optional HTTP/MCP editor is a **local development tool** and requires
+Python 3.11 or newer (the core library continues to support Python 3.10). It is
+not a remotely deployable administration service and has no user-management
+system. Start it on the loopback interface (the CLI default):
 
 ```bash
 pip install -e ".[app,postgresql]"
