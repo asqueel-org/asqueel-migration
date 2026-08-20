@@ -39,3 +39,25 @@ class SqlConnectionException(SqlMigrationError):
 
     def __str__(self):
         return f"Cannot connect to database '{self.dbname}': {self.original_error}"
+
+
+class MigrationExecutionError(SqlMigrationError):
+    """A migration phase failed, with explicit recovery semantics."""
+
+    def __init__(self, phase, original_error, rolled_back=False,
+                 partial_state_possible=False):
+        self.phase = phase
+        self.original_error = original_error
+        self.rolled_back = rolled_back
+        self.partial_state_possible = partial_state_possible
+        if rolled_back and partial_state_possible:
+            outcome = 'DDL rolled back; separately created database remains'
+        elif rolled_back:
+            outcome = 'DDL rolled back'
+        elif partial_state_possible:
+            outcome = 'migration may be partially applied'
+        else:
+            outcome = 'no migration DDL applied'
+        super().__init__(
+            f"migration phase '{phase}' failed ({outcome}): {original_error}"
+        )

@@ -27,6 +27,7 @@ class BaseAdapter(ABC):
     """
 
     TYPE_CONVERSIONS = {}
+    supports_atomic_ddl = False
 
     # -- SQL generation (delegated to writer) --------------------------------
 

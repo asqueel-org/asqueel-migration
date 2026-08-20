@@ -12,8 +12,8 @@ connection time only (optional ``mssql`` extra).
 
 ``execute`` splits the incoming SQL script into individual statements and
 runs them one by one on a single connection: this satisfies the T-SQL
-rule that ``CREATE SCHEMA`` must be alone in its batch, and mirrors the
-legacy per-statement autocommit stance.
+rule that ``CREATE SCHEMA`` must be alone in its batch while retaining one
+transaction for the complete migration DDL unit.
 """
 
 from genro_sqlmigration.database import BaseAdapter, Database
@@ -30,6 +30,7 @@ class MssqlAdapter(BaseAdapter):
     """SQL Server adapter: MssqlWriter for DDL, MssqlReader for introspection, pymssql for execution."""
 
     TYPE_CONVERSIONS = MssqlWriter.TYPE_CONVERSIONS
+    supports_atomic_ddl = True
 
     def __init__(self, database):
         self.database = database
@@ -92,6 +93,10 @@ class MssqlAdapter(BaseAdapter):
                     cursor.execute(statement)
             if not autocommit:
                 connection.commit()
+        except Exception:
+            if not autocommit:
+                connection.rollback()
+            raise
         finally:
             connection.close()
 

@@ -33,6 +33,7 @@ from genro_sqlmigration.adapters import (
     SqliteAdapter,
     SqliteDatabase,
 )
+from genro_sqlmigration.exceptions import MigrationExecutionError
 from genro_sqlmigration.json_producer import JsonStructureProducer
 from genro_sqlmigration.migrator import SqlMigrator
 from genro_sqlmigration.structures import (
@@ -57,6 +58,7 @@ __all__ = [
     "JsonStructureProducer",
     "MssqlAdapter",
     "MssqlDatabase",
+    "MigrationExecutionError",
     "MysqlAdapter",
     "MysqlDatabase",
     "PgAdapter",

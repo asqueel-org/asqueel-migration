@@ -32,17 +32,17 @@ tables created in the same migration. If they were applied before
 the target tables were created, they would fail.
 
 Execution modes
-----------------
+---------------
 
-The ``applyChanges()`` method executes commands in three phases:
+Database creation, when needed, is a separate manager operation because
+``CREATE DATABASE`` cannot be part of the target database transaction.
+All remaining DDL is then submitted as one unit:
 
-1. **db_creation**: executed with ``manager=True`` (uses the system
-   connection, not the connection to the DB being created)
+- PostgreSQL, SQLite and SQL Server execute it in one transaction.
+- MySQL executes it best-effort because its DDL can implicitly commit.
 
-2. **build_commands**: executed with ``autoCommit=True`` (each statement
-   is committed immediately, without an atomic transaction)
-
-3. **extensions_commands**: executed with ``autoCommit=True``
+Execution stops at the first error. Atomic dialects roll back the DDL unit;
+best-effort dialects can retain statements completed before the failure.
 
 Backup conversion verification
 -------------------------------
@@ -56,6 +56,8 @@ by comparing the converted column with the backup:
 - If there is loss: the backup column is preserved and a
   report is generated for the user
 """
+
+from .exceptions import MigrationExecutionError
 
 
 class ExecutorMixin:
@@ -130,7 +132,12 @@ class ExecutorMixin:
         command_list += relation_command_list
         self.sql_commands['build_commands'] = '\n'.join(command_list)
 
-        return '\n'.join([v for v in self.sql_commands.values() if v])
+        ordered_phases = (
+            self.sql_commands.get('db_creation'),
+            self.sql_commands.get('extensions_commands'),
+            self.sql_commands.get('build_commands'),
+        )
+        return '\n'.join(value for value in ordered_phases if value)
 
     def sqlCommandsForTable(self, schema_name=None, table_name=None,
                             tbl_item=None):
@@ -212,31 +219,65 @@ class ExecutorMixin:
     def applyChanges(self):
         """Execute the SQL migration commands on the database.
 
-        Calls ``getChanges()`` to assemble the commands, then executes
-        them in three separate phases:
+        Calls ``getChanges()`` to assemble the commands, then executes them:
 
         1. **db_creation**: CREATE DATABASE, executed with ``manager=True``
-           (uses the system connection, not the one to the DB being created)
+           and therefore outside the target database transaction.
 
-        2. **build_commands**: CREATE SCHEMA, CREATE/ALTER TABLE, CREATE INDEX,
-           ADD CONSTRAINT, ADD FOREIGN KEY. Executed with ``autoCommit=True``.
+        2. **ddl**: extensions and structural DDL in one transaction on
+           dialects that support transactional DDL. Other dialects run the
+           same unit best-effort and expose a warning.
 
-        3. **extensions_commands**: CREATE EXTENSION. Executed with
-           ``autoCommit=True``.
+        Execution stops at the first error and raises
+        :class:`MigrationExecutionError` with rollback/partial-state details.
+
+        Returns:
+            dict: Execution mode and successfully completed phases.
         """
         self.getChanges()
 
+        adapter = self.db.adapter
+        # Third-party/legacy adapters without the capability flag remain
+        # compatible and take the conservative best-effort path.
+        atomic = bool(getattr(adapter, 'supports_atomic_ddl', False))
+        result = {
+            'atomic': atomic,
+            'best_effort': not atomic,
+            'phases_applied': [],
+        }
+        if not atomic:
+            self.warnings.append(
+                "DDL atomicity is not supported by this dialect; migration "
+                "is best-effort and a failure may leave a partial state"
+            )
+
         db_creation = self.sql_commands.pop('db_creation', None)
         if db_creation:
-            self.db.adapter.execute(db_creation, manager=True)
+            try:
+                adapter.execute(db_creation, manager=True)
+                result['phases_applied'].append('database_creation')
+            except Exception as error:
+                raise MigrationExecutionError(
+                    'database_creation', error, partial_state_possible=False
+                ) from error
 
         build_commands = self.sql_commands.pop('build_commands', None)
-        if build_commands:
-            self.db.adapter.execute(build_commands, autoCommit=True)
-
         extensions_commands = self.sql_commands.pop('extensions_commands', None)
-        if extensions_commands:
-            self.db.adapter.execute(extensions_commands, autoCommit=True)
+        ddl_commands = '\n'.join(
+            command for command in (extensions_commands, build_commands) if command
+        )
+        if ddl_commands:
+            try:
+                adapter.execute(ddl_commands, autoCommit=not atomic)
+                result['phases_applied'].append('ddl')
+            except Exception as error:
+                database_created = 'database_creation' in result['phases_applied']
+                raise MigrationExecutionError(
+                    'ddl', error,
+                    rolled_back=atomic,
+                    partial_state_possible=not atomic or database_created,
+                ) from error
+        return result
 
     def verifyConversionBackups(self):
         """Verify backup columns after type conversions.

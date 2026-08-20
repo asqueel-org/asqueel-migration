@@ -39,6 +39,7 @@ class SqliteAdapter(BaseAdapter):
     """SQLite adapter: SqliteWriter for DDL, SqliteReader for introspection, sqlite3 for execution."""
 
     TYPE_CONVERSIONS = SqliteWriter.TYPE_CONVERSIONS
+    supports_atomic_ddl = True
 
     def __init__(self, database):
         self.database = database
@@ -89,16 +90,21 @@ class SqliteAdapter(BaseAdapter):
     def execute(self, sql, autoCommit=False, manager=False):
         """Run a (possibly multi-statement) SQL script one statement at a time.
 
-        Statements are split and executed sequentially on one connection
-        (per-statement autocommit stance, matching the legacy behaviour).
+        Statements are split and executed sequentially in one transaction.
         The connection creates the main file if missing, so a migration from
         a nonexistent database works end-to-end.
         """
         connection = self._connect_creating()
         try:
+            # Python's sqlite3 does not implicitly open a transaction for DDL,
+            # so BEGIN must be explicit for the script to be rollback-safe.
+            connection.execute('BEGIN')
             for statement in self._split_statements(sql):
                 connection.execute(statement)
             connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
         finally:
             connection.close()
 

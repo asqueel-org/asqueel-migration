@@ -46,9 +46,9 @@ Valutazione indicativa: **7/10**.
   causare un `ValueError` (caso osservato: `root.entity_name` differente).
 - [x] Conservare intenzionalmente gli oggetti presenti soltanto nel database:
   nessun DROP implicito e nessun rename inferito da remove più add.
-- [ ] Aggiungere un'opzione di esecuzione atomica per i database che supportano
-  DDL transazionale. L'autocommit attuale può lasciare migrazioni parzialmente
-  applicate.
+- [x] Rendere atomica di default l'esecuzione sui database che supportano DDL
+  transazionale; dichiarare MySQL best-effort e documentare il recupero tramite
+  una nuova introspezione alla successiva invocazione.
 - [ ] Produrre un report strutturato delle operazioni ignorate o non supportate,
   non soltanto una stringa SQL eventualmente vuota.
 

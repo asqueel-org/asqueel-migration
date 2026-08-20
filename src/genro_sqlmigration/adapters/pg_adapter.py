@@ -25,6 +25,7 @@ class PgAdapter(BaseAdapter):
     """PostgreSQL adapter: PgWriter for DDL, PgReader for introspection, psycopg 3 for execution."""
 
     TYPE_CONVERSIONS = PgWriter.TYPE_CONVERSIONS
+    supports_atomic_ddl = True
 
     def __init__(self, database):
         self.database = database
@@ -59,6 +60,10 @@ class PgAdapter(BaseAdapter):
                 cursor.execute(sql)
             if not connection.autocommit:
                 connection.commit()
+        except Exception:
+            if not connection.autocommit:
+                connection.rollback()
+            raise
         finally:
             connection.close()
 
