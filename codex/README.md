@@ -54,14 +54,16 @@ Valutazione indicativa: **7/10**.
 
 ## P1 — Sicurezza operativa
 
-- [ ] Documentare che l'endpoint REST `apply` esegue DDL e deve essere protetto
-  da autenticazione, autorizzazione e restrizioni di rete.
-- [ ] Evitare il passaggio di password in parametri che possano finire in URL o
-  log HTTP; preferire body o secret injection.
-- [ ] Validare o quotare centralmente tutti gli identificatori SQL provenienti
-  dal modello, inclusi nomi di schema, tabella, colonna e constraint.
-- [ ] Conservare dry-run e operazioni distruttive come scelte esplicite e
-  separate.
+- [x] Dichiarare l'editor come strumento di sviluppo locale e rifiutare a
+  runtime i client non loopback, senza introdurre un sistema utenti fuori
+  scope.
+- [x] Accettare le credenziali REST soltanto nel body JSON, rifiutare query
+  string e form, e oscurare la password negli errori.
+- [x] Esplicitare il trust boundary: l'XML locale è input dello sviluppatore e
+  contiene anche campi SQL nativi intenzionali; non è accettabile da fonti non
+  fidate e non viene presentato come interfaccia remota sicura.
+- [x] Conservare dry-run e apply come operazioni esplicite e separate; rendere
+  anche l'editor additivo, senza DROP o rename impliciti.
 
 ## P2 — Qualità e typing
 

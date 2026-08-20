@@ -16,13 +16,17 @@ Both take ``connection_params`` — the dict the tool asks for
 which database it targets.
 """
 
+from typing import Any, cast
+
 from .adapters import PgDatabase
 from .migrator import SqlMigrator
 from .validation import StructureValidator
 from .xml_producer import XmlStructureProducer, struct_to_xml
 
 
-def introspect_to_xml(connection_params, schemas=None):
+def introspect_to_xml(
+    connection_params: dict[str, Any], schemas: list[str] | None = None
+) -> str:
     """Read a live database's structure and return it as natural SQL-model XML.
 
     ``schemas`` limits the introspection to the given schema names (default:
@@ -31,10 +35,15 @@ def introspect_to_xml(connection_params, schemas=None):
     """
     db = PgDatabase(connection_params, application_schemas=schemas)
     structure = db.adapter.reader.get_json_struct(db.get_dbname(), schemas=schemas)
-    return struct_to_xml(structure)
+    return cast(str, struct_to_xml(structure))
 
 
-def migrate_from_xml(connection_params, xml, apply=False, schemas=None):
+def migrate_from_xml(
+    connection_params: dict[str, Any],
+    xml: str,
+    apply: bool = False,
+    schemas: list[str] | None = None,
+) -> str:
     """Migrate a database to match an edited SQL-model XML.
 
     Projects the XML to the normalized JSON (validated), diffs it against the
@@ -43,7 +52,9 @@ def migrate_from_xml(connection_params, xml, apply=False, schemas=None):
     database already matches — the idempotence signal).
     """
     db = PgDatabase(connection_params, application_schemas=schemas)
-    migrator = SqlMigrator(db, removeDisabled=False)
+    # Follow the additive compatibility contract: database-only objects are
+    # retained, and no rename or DROP is inferred from the edited model.
+    migrator = SqlMigrator(db, removeDisabled=True)
     migrator.ormStructure = StructureValidator().validate(
         XmlStructureProducer(xml).get_json_struct()
     )
@@ -51,4 +62,4 @@ def migrate_from_xml(connection_params, xml, apply=False, schemas=None):
     changes = migrator.getChanges()
     if apply:
         migrator.applyChanges()
-    return changes
+    return cast(str, changes)
