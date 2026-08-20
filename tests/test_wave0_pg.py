@@ -19,6 +19,8 @@ idempotence re-diff.
 import psycopg
 import pytest
 
+from genro_sqlmigration import MigrationExecutionError
+
 from .support.migration_base import BaseMigrationTest
 
 
@@ -89,8 +91,13 @@ class TestCheckConstraints(BaseMigrationTest):
         tbl.checkConstraint('chk_product_qty', '(qty > 100)')
         self.startup()
         self.migrator.prepareMigrationCommands()
-        with pytest.raises(psycopg.errors.CheckViolation):
+        with pytest.raises(MigrationExecutionError) as caught:
             self.migrator.applyChanges()
+        assert isinstance(
+            caught.value.original_error, psycopg.errors.CheckViolation
+        )
+        assert caught.value.rolled_back is True
+        assert caught.value.partial_state_possible is False
 
 
 @pytest.mark.postgresql
