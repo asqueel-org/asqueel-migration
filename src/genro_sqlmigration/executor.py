@@ -22,9 +22,10 @@ Assembly follows a specific order to respect dependencies::
     3. CREATE SCHEMA (new schemas)
     4. For each table:
        a. Pre-commands (column backups for type conversions)
-       b. CREATE TABLE (new tables) or ALTER TABLE (columns)
-       c. ADD CONSTRAINT (UNIQUE, CHECK constraints)
-       d. CREATE INDEX (indexes)
+       b. ALTER TABLE (added/changed columns)
+       c. CREATE TABLE (new tables) or primary key rebuild
+       d. ADD CONSTRAINT (UNIQUE, CHECK constraints)
+       e. CREATE INDEX (indexes)
     5. ALTER TABLE ADD FOREIGN KEY (FK relations - last)
 
 **Foreign keys are applied last** because they might reference
@@ -148,9 +149,10 @@ class ExecutorMixin:
 
         The assembly order is:
         1. Pre-commands (column backups for conversions)
-        2. CREATE TABLE (new table) or ALTER TABLE with columns
-        3. ADD CONSTRAINT (separate constraints)
-        4. CREATE INDEX (separate indexes)
+        2. ALTER TABLE with added/changed columns
+        3. CREATE TABLE (new table) or primary key rebuild
+        4. ADD CONSTRAINT (separate constraints)
+        5. CREATE INDEX (separate indexes)
 
         Foreign keys are returned separately in ``relation_commands``
         to be applied last.
@@ -189,14 +191,14 @@ class ExecutorMixin:
         ]
 
         table_command = tbl_item.get('command')
-        if table_command:
-            # New table: the command is the complete CREATE TABLE
-            command_list.append(table_command)
-        elif col_fragments:
-            # Existing table: ALTER TABLE statements assembled by the dialect
+        # A key rebuild may reference columns added in this migration.
+        # New tables inline their columns and have no separate fragments.
+        if col_fragments:
             command_list += self.db.adapter.struct_alter_table_commands(
                 schema_name, table_name, col_fragments
             )
+        if table_command:
+            command_list.append(table_command)
 
         # Separate constraints: each constraint needs its own ALTER TABLE
         for constraint_sql in constraint_commands:
