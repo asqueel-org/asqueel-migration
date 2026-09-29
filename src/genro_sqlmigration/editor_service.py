@@ -9,7 +9,7 @@ The two operations the editor exposes, as plain functions with no web
 framework: introspect a live database into the natural SQL-model XML, and
 migrate a database to match an edited XML. Keeping the logic here (not in the
 server) means the round-trip is testable directly against a database; the
-genro-asgi server is a thin wrapper over these.
+kajenn server is a thin wrapper over these.
 
 Both take ``connection_params`` — the dict the tool asks for
 (``{host, port, user, password, dbname}``) — so the tool is agnostic about

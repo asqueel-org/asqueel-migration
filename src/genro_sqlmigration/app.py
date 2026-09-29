@@ -6,19 +6,19 @@ app.py - the DB <-> XML editor as a web/MCP application
 =======================================================
 
 Exposes the transport-agnostic editor operations from
-:mod:`editor_service` as an HTTP + MCP application, built on genro-asgi's
+:mod:`editor_service` as an HTTP + MCP application, built on kajenn's
 ``McpOpenApiApplication`` ("one router, two faces": the same routes are
 reachable as REST endpoints and as MCP tools).
 
-genro-asgi is an optional dependency: install the ``app`` extra
+kajenn is an optional dependency: install the ``app`` extra
 (``pip install genro-sqlmigration[app,postgresql]``). The import lives in
 this module only, so the core package stays installable with just
-``dictdiffer`` and its driver. genro-asgi is a sibling ``genro-*`` package,
-not the legacy ``gnr.*`` — importing it does not break the autonomy rule.
+``dictdiffer`` and its driver. Kajenn is the successor of genro-asgi;
+no legacy ``gnr.*`` imports are needed.
 
-Launch with the genro-asgi CLI (no server code of our own)::
+Launch with the kajenn CLI (no server code of our own)::
 
-    genro-asgi serve application=src/genro_sqlmigration/app.py:EditorApp \
+    kajenn serve application=src/genro_sqlmigration/app.py:EditorApp \
         --host 127.0.0.1
 
 Endpoints then live at ``/introspect``, ``/migrate``, ``/apply``; the MCP
@@ -40,15 +40,15 @@ from collections.abc import Callable
 from ipaddress import ip_address
 from typing import TypeVar
 
-from genro_asgi import (
+from genro_routes import route
+from kajenn import (
     HTTPBadRequest,
     HTTPException,
     HTTPForbidden,
     McpOpenApiApplication,
 )
-from genro_routes import route
 
-# Absolute import: the genro-asgi CLI can load this module as a standalone
+# Absolute import: the kajenn CLI can load this module as a standalone
 # file (application=.../app.py:EditorApp), where a relative import has no
 # parent package. The package is installed, so the absolute form works both
 # as a file target and as a module target.
@@ -108,6 +108,8 @@ def _schema_list(schemas):
 
 class EditorApp(McpOpenApiApplication):
     """DB <-> XML editor restricted to local development clients."""
+
+    mount = ""
 
     openapi_info = {
         "title": "genro-sqlmigration editor",

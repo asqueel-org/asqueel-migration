@@ -2,13 +2,15 @@
 
 import asyncio
 import json
+from importlib.util import find_spec
 from unittest.mock import Mock, patch
 
 import pytest
 
-pytest.importorskip('genro_asgi', minversion='0.33')
+if find_spec('kajenn') is None:
+    pytest.skip('optional Kajenn editor dependency is not installed', allow_module_level=True)
 
-from genro_asgi import AsgiServer  # noqa: E402
+from kajenn import AsgiServer  # noqa: E402
 
 from genro_sqlmigration.app import EditorApp  # noqa: E402
 from genro_sqlmigration.editor_service import migrate_from_xml  # noqa: E402
@@ -62,7 +64,7 @@ def _request(
 
 @pytest.fixture
 def editor_server():
-    return AsgiServer(applications=[EditorApp(mount='')])
+    return AsgiServer(applications=[EditorApp])
 
 
 def test_non_loopback_client_is_rejected(editor_server):

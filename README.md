@@ -147,9 +147,20 @@ system. Start it on the loopback interface (the CLI default):
 
 ```bash
 pip install -e ".[app,postgresql]"
-genro-asgi serve application=src/genro_sqlmigration/app.py:EditorApp \
+kajenn serve application=src/genro_sqlmigration/app.py:EditorApp \
   --host 127.0.0.1 --port 8000
 ```
+
+The `app` extra uses Kajenn, the successor of genro-asgi. While Kajenn is
+evolving ahead of its PyPI release, this extra pins its source to commit
+`5b460b58f4bdb3a32ad94eecbf99a2e4510fe8fa`. Installing it requires Git.
+The verified dependency set includes Bag/Builders 0.27.0, TYTX 0.16.0,
+Routes 0.30.0 and Storage 0.8.1; transitive dependencies are not locked.
+Advance that revision after running `tests/test_editor_app.py` against the
+new checkout; those tests cover the HTTP, OpenAPI and MCP boundary. For local
+Kajenn development, install the desired checkout explicitly after this extra
+(`python -m pip install -e /path/to/kajenn`). The core and database CLI do not
+depend on Kajenn.
 
 The application also checks the peer address and rejects non-loopback clients,
 even if it is accidentally bound to another interface. `/introspect`,
