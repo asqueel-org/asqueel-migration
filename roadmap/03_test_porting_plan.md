@@ -104,3 +104,11 @@ Corrections to the plan discovered while porting:
 - Legacy suite: `gnrpy/tests/sql/test_gnrsqlmigration.py`,
   `test_connection_error.py`, `common.py` (genropy `develop`).
 - Audit of what the tests must pin: doc `02` §A (+ §E addendum).
+
+
+## 2026-09-29 alignment audit
+
+See [the current legacy test alignment](../docs/legacy_test_alignment.md) for
+the complete 84-method inventory, newly ported regressions and the one
+intentional legacy-only exclusion. The five upstream future-feature cases
+remain explicitly skipped.
