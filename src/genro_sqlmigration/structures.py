@@ -446,3 +446,14 @@ def hashed_name(schema, table, columns, obj_type='idx'):
     identifier = f"{schema}_{table}_{columns_str}_{obj_type}"
     hash_suffix = hashlib.md5(identifier.encode()).hexdigest()[:8]
     return f"{obj_type}_{hash_suffix}"
+
+
+def normalize_column_size(dtype, size):
+    """Canonicalize varchar min:max sizes; databases retain only the maximum.
+
+    Legacy ``:80`` and ``5:80`` both describe varchar(80), inspected as
+    ``0:80``. Other dtype/size forms keep their existing semantics.
+    """
+    if dtype == 'A' and isinstance(size, str) and ':' in size:
+        return f"0:{size.split(':', 1)[1]}"
+    return size

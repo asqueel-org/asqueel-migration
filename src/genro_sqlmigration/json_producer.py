@@ -15,6 +15,7 @@ one internal form for equivalent models.
 
 Normalization rules applied (shared with the XML producer):
 
+- varchar min:max sizes normalize to ``0:max`` (the database has no minimum);
 - pkey columns get ``notnull='_auto_'``; a single-column PK drops a
   redundant ``unique``;
 - FK / UNIQUE / index structural names are the hashes computed by the
@@ -50,6 +51,7 @@ from .structures import (
     new_schema_item,
     new_structure_root,
     new_table_item,
+    normalize_column_size,
 )
 
 
@@ -115,6 +117,8 @@ class JsonStructureProducer:
         attrs = {k: column[k] for k in COL_JSON_KEYS if column.get(k) is not None}
         if "dtype" not in attrs:  # producer-guide default
             attrs["dtype"] = "A" if attrs.get("size") else "T"
+        if "size" in attrs:
+            attrs["size"] = normalize_column_size(attrs["dtype"], attrs["size"])
         if name in pkey_cols:
             attrs["notnull"] = "_auto_"
             if len(pkey_cols) == 1:
