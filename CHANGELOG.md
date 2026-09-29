@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-09-29
+
+- Preserve added and changed columns before primary-key rebuilds, retaining
+  dialect-specific SQL assembly (#10, #12; legacy genropy/genropy#1194).
+- Normalize legacy varchar min:max sizes in JSON and XML producers so
+  repeated schema comparisons converge after migration (#11, #13).
+- Align regression coverage with legacy develop, including varchar widening
+  on primary-key columns, and document intentional test exclusions.
+
 ## 0.1.0 — 2026-09-29
 
 First public Alpha release.

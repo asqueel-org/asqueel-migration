@@ -51,7 +51,7 @@ from genro_sqlmigration.structures import (
 from genro_sqlmigration.validation import StructureValidator
 from genro_sqlmigration.xml_producer import XmlStructureProducer, struct_to_xml
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "FORMAT_VERSION",
