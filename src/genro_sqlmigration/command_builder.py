@@ -733,7 +733,7 @@ class CommandBuilderMixin:
 
         Two cases:
         - Index name changed: if ``ignore_constraint_name`` is True,
-          keeps the old name. Otherwise generates RENAME.
+          keeps the old name. Otherwise renames or rebuilds per dialect.
         - Index attributes changed: DROP + CREATE with new attributes.
 
         Args:
@@ -745,16 +745,27 @@ class CommandBuilderMixin:
         table_dict = self.schema_tables(item['schema_name'])[item['table_name']]
         indexes_dict = table_dict['indexes']
         entity_name = item['entity_name']
-        index_attributes = item['attributes']
-        if changed_attribute == 'index_name':
-            if self.ignore_constraint_name:
-                index_attributes['index_name'] = oldvalue
+        previous = self.sqlStructure['root']['schemas'][item['schema_name']][
+            'tables'][item['table_name']]['indexes'][entity_name]
+        old_name = previous['attributes'].get('index_name') or entity_name
+        new_name = item['attributes'].get('index_name') or entity_name
+        schema, table = item['schema_name'], item['table_name']
+        if self.ignore_constraint_name:
+            new_name = old_name
+            if changed_attribute == 'index_name':
                 return
-            else:
-                sql = f"ALTER INDEX {oldvalue} RENAME TO {newvalue};"
+        # Decide once from the complete old/new definitions: multiple diff
+        # events for one index must not overwrite a rebuild with a mere rename.
+        old_attrs = {k: v for k, v in previous['attributes'].items() if k != 'index_name'}
+        new_attrs = {k: v for k, v in item['attributes'].items() if k != 'index_name'}
+        if old_attrs == new_attrs:
+            sql = self.db.adapter.struct_rename_index_sql(schema, table, old_name, new_name)
         else:
-            new_command = self.createIndexSql(item)
-            sql = f'DROP INDEX IF EXISTS {index_attributes["index_name"]};\n{new_command}'
+            sql = None
+        if sql is None:
+            replacement = dict(item, attributes=dict(item['attributes'], index_name=new_name))
+            sql = (self.db.adapter.struct_drop_index_sql(schema, table, old_name)
+                   + '\n' + self.createIndexSql(replacement))
         indexes_dict[entity_name]['command'] = sql
 
     def changed_relation(self, item=None, changed_attribute=None,
@@ -979,7 +990,7 @@ class CommandBuilderMixin:
             schema_name=index_item['schema_name'],
             table_name=index_item['table_name'],
             columns=attributes.get("columns"),
-            index_name=index_item['entity_name'],
+            index_name=attributes.get('index_name') or index_item['entity_name'],
             method=attributes.get("method"),
             with_options=attributes.get("with_options"),
             tablespace=attributes.get("tablespace"),

@@ -13,6 +13,10 @@ SQL execution / introspection to a :class:`BaseReader`.
 """
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .writers.base_writer import BaseWriter
 
 
 class BaseAdapter(ABC):
@@ -26,6 +30,7 @@ class BaseAdapter(ABC):
             conversion rules (None, True, or a USING expression string).
     """
 
+    writer: "BaseWriter"
     TYPE_CONVERSIONS = {}
     supports_atomic_ddl = False
 
@@ -71,6 +76,12 @@ class BaseAdapter(ABC):
                                 with_options=None, tablespace=None,
                                 where=None):
         ...
+
+    def struct_drop_index_sql(self, schema_name, table_name, index_name):
+        return self.writer.drop_index_sql(schema_name, table_name, index_name)
+
+    def struct_rename_index_sql(self, schema_name, table_name, old_name, new_name):
+        return self.writer.rename_index_sql(schema_name, table_name, old_name, new_name)
 
     @abstractmethod
     def struct_create_extension_sql(self, extension_name):

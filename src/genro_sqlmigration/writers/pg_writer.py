@@ -374,6 +374,10 @@ class PgWriter(BaseWriter):
             f'{deferrable_str}{initially_deferred_str}'
         )
 
+    def rename_index_sql(self, schema_name, table_name, old_name, new_name):
+        q = self.quote_identifier
+        return f'ALTER INDEX {q(schema_name)}.{q(old_name)} RENAME TO {q(new_name)};'
+
     def create_index_sql(self, schema_name, table_name, columns,
                          index_name=None, unique=False, method=None,
                          with_options=None, tablespace=None, where=None):
@@ -396,31 +400,30 @@ class PgWriter(BaseWriter):
         with_options = with_options or {}
         method = method or "btree"
 
+        q = self.quote_identifier
         if isinstance(columns, dict):
             column_defs = []
             for column, order in columns.items():
                 if order:
-                    column_defs.append(f'"{column}" {order}')
+                    column_defs.append(f'{q(column)} {order}')
                 else:
-                    column_defs.append(f'"{column}"')
+                    column_defs.append(q(column))
             column_list = ", ".join(column_defs)
         else:
-            column_list = ", ".join(f'"{col}"' for col in columns)
+            column_list = ", ".join(q(col) for col in columns)
 
         with_parts = [f"{key} = {value}" for key, value in with_options.items()]
         with_clause = f"WITH ({', '.join(with_parts)})" if with_parts else ""
-        tablespace_clause = f"TABLESPACE {tablespace}" if tablespace else ""
+        tablespace_clause = f"TABLESPACE {q(tablespace)}" if tablespace else ""
         where_clause = f"WHERE {where}" if where else ""
-        full_table_name = self.table_fullname(schema_name, table_name)
+        full_table_name = f'{q(schema_name)}.{q(table_name)}'
         unique_clause = ' UNIQUE ' if unique else " "
 
-        sql = (
-            f"CREATE{unique_clause}INDEX {index_name} "
-            f"ON {full_table_name} "
-            f"USING {method} ({column_list}) "
-            f"{with_clause} {tablespace_clause} {where_clause}"
-        )
-        return f'{" ".join(sql.split())};'
+        clauses = [
+            f"CREATE{unique_clause}INDEX {q(index_name)} ON {full_table_name}",
+            f"USING {method} ({column_list})", with_clause, tablespace_clause, where_clause,
+        ]
+        return ' '.join(clause for clause in clauses if clause) + ';'
 
     def drop_table_pkey_sql(self, schema_name, table_name):
         """Genera DROP della PRIMARY KEY.

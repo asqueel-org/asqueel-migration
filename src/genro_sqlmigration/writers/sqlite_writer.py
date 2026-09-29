@@ -163,23 +163,24 @@ class SqliteWriter(BaseWriter):
         Returns:
             str: CREATE INDEX command.
         """
+        q = self.quote_identifier
         if isinstance(columns, dict):
             column_defs = []
             for column, order in columns.items():
                 if order:
-                    column_defs.append(f'"{column}" {order}')
+                    column_defs.append(f'{q(column)} {order}')
                 else:
-                    column_defs.append(f'"{column}"')
+                    column_defs.append(q(column))
             column_list = ", ".join(column_defs)
         else:
-            column_list = ", ".join(f'"{col}"' for col in columns)
+            column_list = ", ".join(q(col) for col in columns)
         where_clause = f"WHERE {where}" if where else ""
         unique_clause = ' UNIQUE ' if unique else " "
         sql = (
-            f'CREATE{unique_clause}INDEX "{schema_name}"."{index_name}" '
-            f'ON "{table_name}" ({column_list}) {where_clause}'
+            f'CREATE{unique_clause}INDEX {q(schema_name)}.{q(index_name)} '
+            f'ON {q(table_name)} ({column_list}) {where_clause}'
         )
-        return f'{" ".join(sql.split())};'
+        return sql.rstrip() + ';'
 
     # -- Unsupported DDL: reached only if called directly (never via gates) --
 

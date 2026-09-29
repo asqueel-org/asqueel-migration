@@ -108,19 +108,19 @@ class TestCreateIndex:
         sql = self.w.create_index_sql(
             'alfa', 'doc', {'title': None}, index_name='idx_1'
         )
-        assert sql == 'CREATE INDEX idx_1 ON "alfa"."doc" ("title");'
+        assert sql == 'CREATE INDEX "idx_1" ON "alfa"."doc" ("title");'
 
     def test_unique_index(self):
         sql = self.w.create_index_sql(
             'alfa', 'doc', {'title': None}, index_name='idx_1', unique=True
         )
-        assert sql == 'CREATE UNIQUE INDEX idx_1 ON "alfa"."doc" ("title");'
+        assert sql == 'CREATE UNIQUE INDEX "idx_1" ON "alfa"."doc" ("title");'
 
     def test_desc_index(self):
         sql = self.w.create_index_sql(
             'alfa', 'doc', {'title': 'DESC', 'code': None}, index_name='idx_1'
         )
-        assert sql == 'CREATE INDEX idx_1 ON "alfa"."doc" ("title" DESC, "code");'
+        assert sql == 'CREATE INDEX "idx_1" ON "alfa"."doc" ("title" DESC, "code");'
 
 
 class TestUnsupported:

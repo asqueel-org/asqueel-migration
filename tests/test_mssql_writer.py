@@ -113,7 +113,7 @@ class TestIndexes:
         sql = self.w.create_index_sql(
             'alfa', 'doc', {'title': None}, index_name='idx_1'
         )
-        assert sql == 'CREATE INDEX idx_1 ON "alfa"."doc" ("title");'
+        assert sql == 'CREATE INDEX "idx_1" ON "alfa"."doc" ("title");'
 
     def test_filtered_index_with_where(self):
         sql = self.w.create_index_sql(
@@ -121,7 +121,7 @@ class TestIndexes:
             where='title IS NOT NULL'
         )
         assert sql == (
-            'CREATE INDEX idx_2 ON "alfa"."doc" ("title") '
+            'CREATE INDEX "idx_2" ON "alfa"."doc" ("title") '
             'WHERE title IS NOT NULL;'
         )
 
@@ -131,7 +131,7 @@ class TestIndexes:
             unique=True
         )
         assert sql == (
-            'CREATE UNIQUE INDEX idx_3 ON "alfa"."doc" ("a" DESC, "b");'
+            'CREATE UNIQUE INDEX "idx_3" ON "alfa"."doc" ("a" DESC, "b");'
         )
 
     def test_method_and_tablespace_ignored(self):
@@ -139,7 +139,7 @@ class TestIndexes:
             'alfa', 'doc', {'title': None}, index_name='idx_4',
             method='gin', tablespace='fast', with_options={'fillfactor': '70'}
         )
-        assert sql == 'CREATE INDEX idx_4 ON "alfa"."doc" ("title");'
+        assert sql == 'CREATE INDEX "idx_4" ON "alfa"."doc" ("title");'
 
 
 class TestUnsupportedOperations:

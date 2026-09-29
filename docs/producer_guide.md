@@ -236,6 +236,16 @@ the column attribute `unique`, not a constraint.
 
 ### Index
 
+Index names are physical identifiers, not SQL fragments: supply them unquoted.
+Writers quote and escape them, preserving case, punctuation and embedded quotes.
+The normalized entity key remains the structural hash. PostgreSQL and SQLite
+preserve the physical name and each column's descending order on introspection.
+Index rebuilds target the existing physical name in its schema/table namespace;
+`ignore_constraint_name=True` retains that name even if the producer supplies
+another. With `ignore_constraint_name=False`, a name-only change uses native
+rename in PostgreSQL/MySQL and a drop/create in SQLite/SQL Server. Removing an
+index from the model still does not automatically drop it.
+
 ```json
 {"columns": ["title"]}                              // plain list
 {"columns": {"pa": null, "created": "DESC"},        // per-column sort

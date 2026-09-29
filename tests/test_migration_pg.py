@@ -71,7 +71,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('ins_ts', dtype='DH', indexed=True)
         tbl.column('recipy_type', size=':2', indexed=True)
 
-        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "ins_ts" timestamp without time zone ,\nADD COLUMN "recipy_type" character varying(2) ;\nCREATE INDEX idx_f473bae1 ON "alfa"."alfa_recipe" USING btree ("ins_ts") ;\nCREATE INDEX idx_490f54d9 ON "alfa"."alfa_recipe" USING btree ("recipy_type") ;'
+        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "ins_ts" timestamp without time zone ,\nADD COLUMN "recipy_type" character varying(2) ;\nCREATE INDEX "idx_f473bae1" ON "alfa"."alfa_recipe" USING btree ("ins_ts") ;\nCREATE INDEX "idx_490f54d9" ON "alfa"."alfa_recipe" USING btree ("recipy_type") ;'
         self.checkChanges(check_value)
 
     def test_04c_add_unique_multiple_constraint(self):
@@ -98,7 +98,7 @@ class TestSqlMigration(BaseMigrationTest):
         pkg = self.src.package('alfa')
         tbl = pkg.table('recipe')
         tbl.column('search_tsv', dtype='TSV', indexed={'method': 'gin'})
-        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "search_tsv" tsvector ;\nCREATE INDEX idx_1a420e6d ON "alfa"."alfa_recipe" USING gin ("search_tsv") ;'
+        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "search_tsv" tsvector ;\nCREATE INDEX "idx_1a420e6d" ON "alfa"."alfa_recipe" USING gin ("search_tsv") ;'
         self.checkChanges(check_value)
 
     def test_04f_tsv_indexed_true_auto_gin(self):
@@ -110,7 +110,7 @@ class TestSqlMigration(BaseMigrationTest):
         pkg = self.src.package('alfa')
         tbl = pkg.table('recipe')
         tbl.column('content_tsv', dtype='TSV', indexed=True)
-        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "content_tsv" tsvector ;\nCREATE INDEX idx_0ae87617 ON "alfa"."alfa_recipe" USING gin ("content_tsv") ;'
+        check_value = 'ALTER TABLE "alfa"."alfa_recipe" \n ADD COLUMN "content_tsv" tsvector ;\nCREATE INDEX "idx_0ae87617" ON "alfa"."alfa_recipe" USING gin ("content_tsv") ;'
         self.checkChanges(check_value)
 
     def test_05a_create_table_withpkey(self):
@@ -207,7 +207,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.compositeColumn('recipe_row_reference').relation(
             'alfa.recipe_row.composite_key', mode='foreignkey'
         )
-        check_changes = 'CREATE INDEX idx_3e9365a8 ON "alfa"."alfa_recipe_row_annotation" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_annotation"\n ADD CONSTRAINT "fk_cbe2056f" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
+        check_changes = 'CREATE INDEX "idx_3e9365a8" ON "alfa"."alfa_recipe_row_annotation" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_annotation"\n ADD CONSTRAINT "fk_cbe2056f" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
         self.checkChanges(check_changes)
 
     def test_06c_add_relation_to_nopk_single(self):
@@ -215,7 +215,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('recipe')
         tbl.column('author_name', size=':44').relation('alfa.author.name',
                                                        mode='foreignkey')
-        check_changes = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "author_name" character varying(44) ;\nCREATE INDEX idx_44a37a95 ON "alfa"."alfa_recipe" USING btree ("author_name");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_7f18eae7" FOREIGN KEY ("author_name") REFERENCES "alfa"."alfa_author" ("name") ON UPDATE CASCADE;'
+        check_changes = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "author_name" character varying(44) ;\nCREATE INDEX "idx_44a37a95" ON "alfa"."alfa_recipe" USING btree ("author_name");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_7f18eae7" FOREIGN KEY ("author_name") REFERENCES "alfa"."alfa_author" ("name") ON UPDATE CASCADE;'
         self.checkChanges(check_changes)
 
     def test_06d_add_relation_to_nopk_multi(self):
@@ -226,7 +226,7 @@ class TestSqlMigration(BaseMigrationTest):
 
         tbl.compositeColumn('restaurant_ref', columns='restaurant_country,restaurant_vat'
                             ).relation('alfa.restaurant.international_vat', mode='foreignkey')
-        check_changes = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "restaurant_vat" character varying(30) ,\nADD COLUMN "restaurant_country" character(2) ;\nCREATE INDEX idx_f7e554d6 ON "alfa"."alfa_recipe" USING btree ("restaurant_country", "restaurant_vat");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_8e2e04f3" FOREIGN KEY ("restaurant_country", "restaurant_vat") REFERENCES "alfa"."alfa_restaurant" ("country", "vat_number") ON UPDATE CASCADE;'
+        check_changes = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "restaurant_vat" character varying(30) ,\nADD COLUMN "restaurant_country" character(2) ;\nCREATE INDEX "idx_f7e554d6" ON "alfa"."alfa_recipe" USING btree ("restaurant_country", "restaurant_vat");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_8e2e04f3" FOREIGN KEY ("restaurant_country", "restaurant_vat") REFERENCES "alfa"."alfa_restaurant" ("country", "vat_number") ON UPDATE CASCADE;'
         self.checkChanges(check_changes)
 
     def test_06e_add_relation_to_pk_single_onDelete_setnull_deferred(self):
@@ -235,7 +235,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('recipe')
         tbl.column('company_code').relation('alfa.company.code', mode='foreignkey',
                                             onDelete_sql='setnull')
-        check_value = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "company_code" text ;\nCREATE INDEX idx_6cbb7b70 ON "alfa"."alfa_recipe" USING btree ("company_code");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_f87f3ff6" FOREIGN KEY ("company_code") REFERENCES "alfa"."alfa_company" ("code") ON DELETE SET NULL ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;'
+        check_value = 'ALTER TABLE "alfa"."alfa_recipe"\nADD COLUMN "company_code" text ;\nCREATE INDEX "idx_6cbb7b70" ON "alfa"."alfa_recipe" USING btree ("company_code");\nALTER TABLE "alfa"."alfa_recipe"\n ADD CONSTRAINT "fk_f87f3ff6" FOREIGN KEY ("company_code") REFERENCES "alfa"."alfa_company" ("code") ON DELETE SET NULL ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;'
         self.checkChanges(check_value)
 
     def test_07a_create_table_with_relation_to_pk_single(self):
@@ -244,7 +244,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('id', dtype='serial')
         tbl.column('description')
         tbl.column('recipe_code').relation('alfa.recipe.code', mode='foreignkey')
-        check_value = 'CREATE TABLE "alfa"."alfa_product"(\n "id" serial8 NOT NULL,\n "description" text,\n "recipe_code" text,\n PRIMARY KEY (id)\n);\nCREATE INDEX idx_78fd5e36 ON "alfa"."alfa_product" USING btree ("recipe_code");\nALTER TABLE "alfa"."alfa_product"\n ADD CONSTRAINT "fk_ff154564" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;'
+        check_value = 'CREATE TABLE "alfa"."alfa_product"(\n "id" serial8 NOT NULL,\n "description" text,\n "recipe_code" text,\n PRIMARY KEY (id)\n);\nCREATE INDEX "idx_78fd5e36" ON "alfa"."alfa_product" USING btree ("recipe_code");\nALTER TABLE "alfa"."alfa_product"\n ADD CONSTRAINT "fk_ff154564" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;'
         self.checkChanges(check_value)
 
     def test_07b_create_table_with_relation_to_pk_multi(self):
@@ -259,7 +259,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.compositeColumn('recipe_row_reference', columns='recipe_code,recipe_line').relation(
             'alfa.recipe_row.composite_key', mode='foreignkey'
         )
-        check_changes = 'CREATE TABLE "alfa"."alfa_recipe_row_alternative"(\n "id" serial8 NOT NULL,\n "description" text,\n "vegan" boolean,\n "gluten_free" boolean,\n "recipe_code" character varying(12),\n "recipe_line" bigint,\n PRIMARY KEY (id)\n);\nCREATE INDEX idx_17fca263 ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code");\nCREATE INDEX idx_bd86c8b3 ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_a2e10c8f" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_b03ef3c2" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
+        check_changes = 'CREATE TABLE "alfa"."alfa_recipe_row_alternative"(\n "id" serial8 NOT NULL,\n "description" text,\n "vegan" boolean,\n "gluten_free" boolean,\n "recipe_code" character varying(12),\n "recipe_line" bigint,\n PRIMARY KEY (id)\n);\nCREATE INDEX "idx_17fca263" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code");\nCREATE INDEX "idx_bd86c8b3" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_a2e10c8f" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_b03ef3c2" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
         self.checkChanges(check_changes)
 
     def test_08a_modify_column_type(self):

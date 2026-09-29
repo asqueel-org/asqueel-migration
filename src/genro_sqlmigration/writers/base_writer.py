@@ -38,6 +38,25 @@ class BaseWriter(ABC):
     #     'add_constraint'
     CAPABILITIES = frozenset()
 
+    @staticmethod
+    def quote_identifier(name: str) -> str:
+        """Quote one identifier, never a dotted path or SQL expression.
+
+        All bundled adapters use ANSI identifiers: MySQL enables ANSI_QUOTES
+        and SQL Server enables QUOTED_IDENTIFIER. Embedded double quotes are
+        doubled; backticks and brackets are ordinary characters in this mode.
+        """
+        return '"' + name.replace('"', '""') + '"'
+
+    def drop_index_sql(self, schema_name, table_name, index_name):
+        """Drop an index in a schema namespace (PostgreSQL and SQLite)."""
+        q = self.quote_identifier
+        return f'DROP INDEX IF EXISTS {q(schema_name)}.{q(index_name)};'
+
+    def rename_index_sql(self, schema_name, table_name, old_name, new_name):
+        """Return native rename SQL, or None to rebuild the index."""
+        return None
+
     def add_column_sql(self, column_definition):
         """Frammento ALTER TABLE che aggiunge una colonna (default PostgreSQL).
 

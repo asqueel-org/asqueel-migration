@@ -242,6 +242,10 @@ class MssqlWriter(BaseWriter):
             return 'NO ACTION'
         return action
 
+    def drop_index_sql(self, schema_name, table_name, index_name):
+        q = self.quote_identifier
+        return f'DROP INDEX {q(index_name)} ON {q(schema_name)}.{q(table_name)};'
+
     def create_index_sql(self, schema_name, table_name, columns,
                          index_name=None, unique=False, method=None,
                          with_options=None, tablespace=None, where=None):
@@ -264,28 +268,24 @@ class MssqlWriter(BaseWriter):
         Returns:
             str: CREATE INDEX command.
         """
+        q = self.quote_identifier
         if isinstance(columns, dict):
             column_defs = []
             for column, order in columns.items():
                 if order:
-                    column_defs.append(f'"{column}" {order}')
+                    column_defs.append(f'{q(column)} {order}')
                 else:
-                    column_defs.append(f'"{column}"')
+                    column_defs.append(q(column))
             column_list = ", ".join(column_defs)
         else:
-            column_list = ", ".join(f'"{col}"' for col in columns)
+            column_list = ", ".join(q(col) for col in columns)
 
         where_clause = f"WHERE {where}" if where else ""
-        full_table_name = self.table_fullname(schema_name, table_name)
+        full_table_name = f'{q(schema_name)}.{q(table_name)}'
         unique_clause = ' UNIQUE ' if unique else " "
 
-        sql = (
-            f"CREATE{unique_clause}INDEX {index_name} "
-            f"ON {full_table_name} "
-            f"({column_list}) "
-            f"{where_clause}"
-        )
-        return f'{" ".join(sql.split())};'
+        sql = f"CREATE{unique_clause}INDEX {q(index_name)} ON {full_table_name} ({column_list})"
+        return sql + (f" {where_clause}" if where_clause else '') + ';'
 
     def drop_table_pkey_sql(self, schema_name, table_name):
         """Generate DROP of the PRIMARY KEY constraint.

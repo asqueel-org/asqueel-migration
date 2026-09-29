@@ -172,7 +172,7 @@ INDEXES_SQL = """
         i.relname AS index_name,
         a.attname AS column_name,
         ix.indisunique AS is_unique,
-        ix.indoption[array_position(ix.indkey, a.attnum)-1] & 1 AS desc_order,
+        ix.indoption[array_position(ix.indkey, a.attnum)] & 1 AS desc_order,
         am.amname AS index_method,
         spc.spcname AS tablespace,
         pg_get_expr(ix.indpred, t.oid) AS where_clause,

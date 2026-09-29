@@ -278,8 +278,9 @@ class SqliteReader(BaseReader):
     def _index_columns(self, schema_name, index_name):
         """Return the ordered ``{column: sort_order}`` map of an index."""
         columns = {}
+        escaped_name = index_name.replace('"', '""')
         for row in self._fetch(
-            f'PRAGMA "{schema_name}".index_xinfo("{index_name}")'
+            f'PRAGMA "{schema_name}".index_xinfo("{escaped_name}")'
         ):
             _seqno, _cid, name, desc, _coll, key = row
             if not key or name is None:
