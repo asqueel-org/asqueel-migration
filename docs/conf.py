@@ -14,7 +14,7 @@ author = "Softwell S.r.l."
 try:
     release = _pkg_version("genro-sqlmigration")
 except PackageNotFoundError:
-    release = "0.1.0"
+    release = "0.1.1"
 
 # Extensions
 extensions = [

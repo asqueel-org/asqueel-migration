@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "genro-sqlmigration"
-version = "0.1.0"
+version = "0.1.1"
 description = "Database schema migration engine - compares desired structure with actual database and generates SQL commands"
 readme = "README.md"
 license = "Apache-2.0"
