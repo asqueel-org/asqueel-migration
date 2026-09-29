@@ -21,10 +21,34 @@ jobs:
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build
+          pip install build twine
+
+      - name: Verify release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          python - <<'PY'
+          import os, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          assert os.environ["GITHUB_REF_NAME"] == f"v{version}", "Tag/version mismatch"
+          PY
 
       - name: Build package
         run: python -m build
+
+      - name: Validate distributions
+        run: |
+          python -m twine check --strict dist/*
+          python scripts/check_distribution.py dist/*
+
+      - name: Smoke-test wheel and sdist installations
+        run: |
+          for artifact in dist/*.whl dist/*.tar.gz; do
+            python -m venv /tmp/release-smoke
+            /tmp/release-smoke/bin/python -m pip install "$artifact"
+            /tmp/release-smoke/bin/python -c "from genro_sqlmigration import SqlMigrator, StructureValidator, __version__; from importlib.metadata import version; assert __version__ == version('genro-sqlmigration')"
+            rm -rf /tmp/release-smoke
+          done
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4

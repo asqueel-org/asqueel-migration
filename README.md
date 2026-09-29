@@ -10,7 +10,7 @@ through the friendlier **human JSON** / **XML** external formats — and
 the engine does the rest: introspection, diff, DDL generation,
 execution.
 
-> Status: **Alpha** — API may change. Not yet published on PyPI.
+> Status: **Alpha** — API may change.
 
 ## Features
 
@@ -32,10 +32,10 @@ execution.
 
 ## Install
 
-Not yet on PyPI — install from GitHub:
+Install from PyPI:
 
 ```bash
-pip install "genro-sqlmigration[postgresql] @ git+https://github.com/genropy/genro-sqlmigration"
+pip install "genro-sqlmigration[postgresql]"
 ```
 
 Extras: `postgresql` (psycopg 3), `mysql` (PyMySQL), `mssql`
@@ -151,14 +151,13 @@ kajenn serve application=src/genro_sqlmigration/app.py:EditorApp \
   --host 127.0.0.1 --port 8000
 ```
 
-The `app` extra uses Kajenn, the successor of genro-asgi. While Kajenn is
-evolving ahead of its PyPI release, this extra pins its source to commit
-`5b460b58f4bdb3a32ad94eecbf99a2e4510fe8fa`. Installing it requires Git.
-The verified dependency set includes Bag/Builders 0.27.0, TYTX 0.16.0,
-Routes 0.30.0 and Storage 0.8.1; transitive dependencies are not locked.
-Advance that revision after running `tests/test_editor_app.py` against the
-new checkout; those tests cover the HTTP, OpenAPI and MCP boundary. For local
-Kajenn development, install the desired checkout explicitly after this extra
+The `app` extra uses Kajenn, the successor of genro-asgi. The editor is
+verified against the published Kajenn 0.1.0 and development commit
+`5b460b58f4bdb3a32ad94eecbf99a2e4510fe8fa`, with Bag/Builders 0.27.0,
+TYTX 0.16.0, Routes 0.30.0 and Storage 0.8.1. Kajenn is constrained to the
+0.1 series while its API evolves; transitive dependencies are not locked.
+Run `tests/test_editor_app.py` before advancing that range. For local Kajenn
+development, install the desired checkout explicitly after this extra
 (`python -m pip install -e /path/to/kajenn`). The core and database CLI do not
 depend on Kajenn.
 

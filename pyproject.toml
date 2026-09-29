@@ -58,8 +58,7 @@ validation = [
     "jsonschema>=4.18",
 ]
 app = [
-    # Kajenn main is ahead of PyPI; advance this tested baseline deliberately.
-    "kajenn @ git+https://github.com/kajenn-org/kajenn.git@5b460b58f4bdb3a32ad94eecbf99a2e4510fe8fa",
+    "kajenn>=0.1.0,<0.2.0",
     "genro-routes>=0.30.0",
 ]
 dev = [
@@ -93,11 +92,15 @@ Documentation = "https://genro-sqlmigration.readthedocs.io"
 Repository = "https://github.com/genropy/genro-sqlmigration"
 Issues = "https://github.com/genropy/genro-sqlmigration/issues"
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/genro_sqlmigration"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src", "/tests", "/scripts", "/docs",
+    "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE", "/pyproject.toml",
+]
+exclude = ["/docs/_build"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
