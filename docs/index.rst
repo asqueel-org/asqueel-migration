@@ -1,5 +1,9 @@
-asqueel-migration
-==================
+Asqueel Migration
+=================
+
+.. image:: ../assets/branding/asqueel-migration-primary.svg
+   :alt: Asqueel Migration
+   :width: 300px
 
 An autonomous Python library for SQL schema migrations: compare a
 normalized JSON description of a database (the contract) against a live
