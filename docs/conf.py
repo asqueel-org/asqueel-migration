@@ -14,7 +14,7 @@ author = "Softwell S.r.l."
 try:
     release = _pkg_version("asqueel-migration")
 except PackageNotFoundError:
-    release = "0.1.0"
+    release = "0.1.2"
 
 # Extensions
 extensions = [

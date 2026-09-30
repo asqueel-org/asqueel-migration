@@ -1,7 +1,8 @@
 # Release Asqueel Migration
 
 Distribution: `asqueel-migration`. Python package: `asqueel_migration`.
-Repository: `asqueel-org/asqueel-migration`. Initial version: `0.1.0`.
+Repository: `asqueel-org/asqueel-migration`. Prepared version: `0.1.2`. The retained historical tags `v0.1.0` and `v0.1.1`
+belong to the former distribution and must not be moved or reused.
 
 ## One-time PyPI setup
 
@@ -40,7 +41,7 @@ contents have been reviewed. Uploaded PyPI files cannot be replaced in place.
 Publish **asqueel-migration first**. Asqueel's `migration` and `dev` extras depend
 on its public distribution. Before that first migration release, Asqueel CI uses
 an explicit source revision for the migration dependency; wheel metadata keeps
-the normal `asqueel-migration>=0.1.0` requirement.
+the normal `asqueel-migration>=0.1.2` requirement.
 
 No PyPI upload is performed by the rename itself. Read the Docs project/account
 configuration is independent of the checked-in Sphinx configuration.

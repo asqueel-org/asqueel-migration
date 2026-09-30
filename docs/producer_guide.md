@@ -352,7 +352,12 @@ dialect writer maps them to its native equivalents):
 | `serial` | serial8 | | |
 
 Size conventions: `'0:80'` = varchar(80); `'10'` with a char dtype =
-char(10); `'12,2'` = numeric(12,2).
+char(10); `'12,2'` = numeric(12,2). Both public producers normalize
+legacy varchar forms such as `':80'` and `'5:80'` to `'0:80'`: the
+database retains the maximum length, not an application-level minimum.
+This also applies when `dtype` is inferred as `A` from `size`. Fixed-char
+and numeric sizes are preserved. Producers must use the canonical form
+when supplying the normalized contract directly.
 
 ## 5. What NOT to emit (attribute cleaning)
 

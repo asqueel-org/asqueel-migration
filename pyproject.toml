@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "asqueel-migration"
-version = "0.1.0"
+version = "0.1.2"
 description = "Database schema migration engine - compares desired structure with actual database and generates SQL commands"
 readme = "README.md"
 license = "Apache-2.0"

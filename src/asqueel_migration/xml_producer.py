@@ -13,6 +13,7 @@ editor — instead of through an ORM.
 
 Normalization rules applied (producer-guide, physical plane):
 
+- varchar min:max sizes normalize to ``0:max`` (the database has no minimum);
 - pkey columns get ``notnull='_auto_'``; a single-column PK drops a
   redundant ``unique``;
 - an ``indexed`` column generates an index (``indexed`` is not a column
@@ -27,7 +28,7 @@ triggers (root ``<event_trigger>``) and optional readable names.
 
 Not yet (raises or skipped, noted for later): FK supporting-index defaults;
 ``related_columns`` defaulting to the target pkey when a single-column ``to``
-omits the column (a two-part ``to`` raises); ``size`` min:max re-normalization.
+omits the column (a two-part ``to`` raises).
 """
 
 import xml.etree.ElementTree as ET
@@ -44,6 +45,7 @@ from .structures import (
     new_schema_item,
     new_structure_root,
     new_table_item,
+    normalize_column_size,
 )
 
 NS = "urn:genro:sql-model:1.0"
@@ -139,6 +141,8 @@ class XmlStructureProducer:
             attrs["unique"] = _bool(attrs["unique"])
         if "dtype" not in attrs:  # producer-guide default
             attrs["dtype"] = "A" if attrs.get("size") else "T"
+        if "size" in attrs:
+            attrs["size"] = normalize_column_size(attrs["dtype"], attrs["size"])
         if name in pkey_cols:
             attrs["notnull"] = "_auto_"
             if len(pkey_cols) == 1:
