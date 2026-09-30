@@ -1,5 +1,12 @@
 # Asqueel Migration
 
+[![PyPI](https://img.shields.io/pypi/v/asqueel-migration)](https://pypi.org/project/asqueel-migration/)
+[![Tests](https://github.com/asqueel-org/asqueel-migration/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/asqueel-org/asqueel-migration/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/asqueel-org/asqueel-migration/branch/main/graph/badge.svg)](https://app.codecov.io/gh/asqueel-org/asqueel-migration)
+[![Documentation](https://readthedocs.org/projects/asqueel-migration/badge/?version=latest)](https://asqueel-migration.readthedocs.io/en/latest/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/asqueel-org/asqueel-migration/blob/main/pyproject.toml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](https://github.com/asqueel-org/asqueel-migration/blob/main/LICENSE)
+
 ![Asqueel Migration](https://raw.githubusercontent.com/asqueel-org/asqueel-migration/main/assets/branding/asqueel-migration-primary.svg)
 
 **Database schema migration engine** — compare a desired database
