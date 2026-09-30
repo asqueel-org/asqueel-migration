@@ -16,7 +16,7 @@ indexes, per-dtype index config) is producer-guide material for M2
 (roadmap doc ``04`` §2).
 """
 
-from genro_sqlmigration.structures import (
+from asqueel_migration.structures import (
     COL_JSON_KEYS,
     camel_to_snake,
     hashed_name,

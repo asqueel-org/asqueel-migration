@@ -17,7 +17,7 @@ import time
 
 import pytest
 
-from genro_sqlmigration.adapters import MysqlDatabase
+from asqueel_migration.adapters import MysqlDatabase
 
 MYSQL_IMAGE = 'mysql:8'
 MYSQL_ROOT_PASSWORD = 'gsmtest'

@@ -14,7 +14,7 @@ Scope fixed by the owner (2026-07-08):
 
 1. **ORM-agnostic, guaranteed** — the package never imports an ORM;
    producers build the JSON. The Genropy `orm_extractor` stays in
-   Genropy legacy; the future genro-sql builder tree will project into
+   Genropy legacy; the future asqueel builder tree will project into
    the same JSON.
 2. **Migrations toward multiple databases** — PostgreSQL first (95% of
    real usage), then SQLite, MySQL, MSSQL; one reader/writer pair per
@@ -48,7 +48,7 @@ Scope fixed by the owner (2026-07-08):
   decisive value is decoupling: serializable snapshots, literal test
   fixtures, language-agnostic producers, external validation.
 - **AST rejected as contract**: rich typed trees already exist at both
-  ends (legacy model obj, genro-sql source tree); the intermediate
+  ends (legacy model obj, asqueel source tree); the intermediate
   must stay the dumb, stable common denominator. Typed dataclasses MAY
   appear later as an internal view that serializes to the same JSON
   (hardening, post-M1).
@@ -57,15 +57,15 @@ Scope fixed by the owner (2026-07-08):
   conventions for no decisive gain. XSD's genuine plus (`keyref`) is
   recovered by a semantic validation pass inside `validate()`. The
   XSD affinity of genro-builders belongs to the *model source*
-  round-trip in genro-sql, not to this contract.
+  round-trip in asqueel, not to this contract.
 
 ## 4. Consumers
 
 - **Genropy legacy** — keeps `orm_extractor`, produces the JSON, will
   depend on this package (integration after M1 makes it safe).
-- **genro-sql** (future) — projects the builder source tree into the
+- **asqueel** (future) — projects the builder source tree into the
   JSON; full DDL render may be expressed as "diff against an empty
-  database" (to be confirmed on the genro-sql side).
+  database" (to be confirmed on the asqueel side).
 
 ## 5. Milestones
 
@@ -91,7 +91,7 @@ Scope fixed by the owner (2026-07-08):
   then `mysql`, `mssql`. One dialect at a time, each with its oracle
   subset.
 - **M4 — Consumers integration**: Genropy legacy depends on the
-  package; genro-sql tree→JSON projection when its grammar exists.
+  package; asqueel tree→JSON projection when its grammar exists.
 
 ## 6. Hardening backlog (post-M1, decide then)
 
@@ -117,4 +117,4 @@ Scope fixed by the owner (2026-07-08):
 
 - Owner decisions: session of 2026-07-08.
 - Legacy: genropy `develop`, `gnrpy/gnr/sql/gnrsqlmigration/`.
-- Wider rewrite: `sub-projects/genro-sql/roadmap/`.
+- Wider rewrite: `sub-projects/asqueel/roadmap/`.

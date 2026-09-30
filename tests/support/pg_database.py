@@ -5,7 +5,7 @@ the mutable test model, plus the drop-database lifecycle helper. The
 oracle suite therefore exercises the production ``PgAdapter``/``PgDatabase``.
 """
 
-from genro_sqlmigration.adapters import PgDatabase
+from asqueel_migration.adapters import PgDatabase
 
 
 class PgTestDatabase(PgDatabase):

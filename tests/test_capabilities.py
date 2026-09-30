@@ -9,8 +9,8 @@ so the mechanism is a no-op for the whole oracle suite.
 
 import copy
 
-from genro_sqlmigration import PgDatabase, SqlMigrator
-from genro_sqlmigration.structures import (
+from asqueel_migration import PgDatabase, SqlMigrator
+from asqueel_migration.structures import (
     nested_defaultdict,
     new_column_item,
     new_constraint_item,
@@ -21,7 +21,7 @@ from genro_sqlmigration.structures import (
     new_structure_root,
     new_table_item,
 )
-from genro_sqlmigration.writers import PgWriter
+from asqueel_migration.writers import PgWriter
 
 
 def _migrator(capabilities):

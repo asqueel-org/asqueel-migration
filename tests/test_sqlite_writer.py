@@ -8,8 +8,8 @@ methods.
 
 import pytest
 
-from genro_sqlmigration.exceptions import SqlMigrationError
-from genro_sqlmigration.writers import SqliteWriter
+from asqueel_migration.exceptions import SqlMigrationError
+from asqueel_migration.writers import SqliteWriter
 
 
 @pytest.fixture

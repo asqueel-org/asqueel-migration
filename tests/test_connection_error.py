@@ -19,13 +19,13 @@ from unittest.mock import MagicMock, patch
 import psycopg
 import pytest
 
-from genro_sqlmigration import SqlMigrator
-from genro_sqlmigration.adapters import PgAdapter
-from genro_sqlmigration.exceptions import (
+from asqueel_migration import SqlMigrator
+from asqueel_migration.adapters import PgAdapter
+from asqueel_migration.exceptions import (
     NonExistingDbException,
     SqlConnectionException,
 )
-from genro_sqlmigration.readers import PgReader
+from asqueel_migration.readers import PgReader
 
 
 def _adapter(dbname='test_db'):

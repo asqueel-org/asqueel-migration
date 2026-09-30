@@ -2,9 +2,9 @@
 
 import pytest
 
-from genro_sqlmigration import PgAdapter, PgDatabase
-from genro_sqlmigration.exceptions import SqlMigrationError
-from genro_sqlmigration.readers import PgReader
+from asqueel_migration import PgAdapter, PgDatabase
+from asqueel_migration.exceptions import SqlMigrationError
+from asqueel_migration.readers import PgReader
 
 
 class TestPgDatabase:

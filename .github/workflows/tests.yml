@@ -33,13 +33,13 @@ jobs:
         if: matrix.python-version != '3.10'
         run: |
           python -m pip install -e ".[app]"
-          python -c "from genro_sqlmigration.app import EditorApp"
+          python -c "from asqueel_migration.app import EditorApp"
 
       - name: Run unit and SQLite tests
         run: >-
           pytest
           -m "not postgresql and not mysql and not mssql"
-          --cov=genro_sqlmigration
+          --cov=asqueel_migration
           --cov-report=xml
           --cov-report=term
           --cov-fail-under=60
@@ -75,7 +75,7 @@ jobs:
       # outstanding typing debt visible without breaking unrelated changes.
       - name: mypy (informational)
         continue-on-error: true
-        run: mypy src/genro_sqlmigration
+        run: mypy src/asqueel_migration
 
   postgresql:
     name: PostgreSQL integration

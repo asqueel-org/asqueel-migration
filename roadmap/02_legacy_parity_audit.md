@@ -108,4 +108,4 @@ fixed red→green with the tests that pin them:
 
 - Audit session: 2026-07-08 (module diffs verified line by line);
   addendum §E from the M1 porting session (2026-07-09).
-- Legacy: genropy `develop`; package: `genro-sqlmigration` @ `9a91322`.
+- Legacy: genropy `develop`; package: `asqueel-migration` @ `9a91322`.

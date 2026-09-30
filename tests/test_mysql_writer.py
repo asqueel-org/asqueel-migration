@@ -7,8 +7,8 @@ unsupported operations that must raise.
 
 import pytest
 
-from genro_sqlmigration.exceptions import SqlMigrationError
-from genro_sqlmigration.writers import MysqlWriter
+from asqueel_migration.exceptions import SqlMigrationError
+from asqueel_migration.writers import MysqlWriter
 
 
 class TestTypeMap:

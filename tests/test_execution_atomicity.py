@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from genro_sqlmigration import MigrationExecutionError, PgDatabase, SqliteDatabase
-from genro_sqlmigration.executor import ExecutorMixin
+from asqueel_migration import MigrationExecutionError, PgDatabase, SqliteDatabase
+from asqueel_migration.executor import ExecutorMixin
 
 
 class RecordingAdapter:

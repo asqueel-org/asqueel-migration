@@ -1,4 +1,4 @@
-genro-sqlmigration
+asqueel-migration
 ==================
 
 An autonomous Python library for SQL schema migrations: compare a

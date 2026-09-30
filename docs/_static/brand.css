@@ -1,0 +1,31 @@
+/* Asqueel — Autumn Current. Palette and logos: assets/asqueel/. */
+:root {
+  --asqueel-oxblood: #571f2b;
+  --asqueel-wine: #79323d;
+  --asqueel-copper: #c78249;
+  --asqueel-parchment: #f5ebdd;
+  --asqueel-ink: #2c2223;
+}
+body, .wy-nav-content { color: var(--asqueel-ink); }
+.wy-nav-content-wrap { background: var(--asqueel-parchment); }
+.wy-nav-content { background: #fffcf8; }
+.wy-side-nav-search, .wy-nav-top { background: var(--asqueel-oxblood); }
+.wy-nav-side { background: var(--asqueel-ink); }
+.wy-side-nav-search > a img.logo { width: 220px; max-width: 100%; height: auto; }
+.wy-side-nav-search input[type="text"] { border-color: var(--asqueel-copper); }
+.wy-menu-vertical header, .wy-menu-vertical p.caption { color: #e0bc85; }
+.wy-menu-vertical a { color: var(--asqueel-parchment); }
+.wy-menu-vertical a:hover { background: var(--asqueel-wine); color: white; }
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.toctree-l2.current > a { color: var(--asqueel-oxblood); }
+.wy-menu-vertical li.current a:hover { background: #eadccc; color: var(--asqueel-oxblood); }
+.rst-content a, .wy-breadcrumbs a { color: var(--asqueel-wine); }
+.rst-content a:hover, .wy-breadcrumbs a:hover { color: var(--asqueel-oxblood); text-decoration: underline; }
+.rst-content h1, .rst-content h2, .rst-content h3 { color: var(--asqueel-oxblood); }
+.rst-content :not(pre) > code.literal { color: var(--asqueel-oxblood); background: #f3e8df; }
+.rst-content .note .admonition-title, .rst-content .tip .admonition-title { background: var(--asqueel-wine); }
+.rst-content .note, .rst-content .tip { background: var(--asqueel-parchment); }
+.rst-content .mermaid { background: #fffcf8; border-color: #dbc8b6; }
+.rst-content table.docutils thead { background: var(--asqueel-parchment); }
+.btn-neutral { color: var(--asqueel-oxblood) !important; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--asqueel-copper); outline-offset: 3px; }

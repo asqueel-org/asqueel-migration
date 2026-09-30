@@ -8,10 +8,10 @@ XML 1.0 form can express, both producers must reach the identical internal
 form. The remaining tests exercise the hard gaps the XML form lacks.
 """
 
-from genro_sqlmigration import StructureValidator
-from genro_sqlmigration.json_producer import JsonStructureProducer
-from genro_sqlmigration.structures import hashed_name, json_equal
-from genro_sqlmigration.xml_producer import XmlStructureProducer
+from asqueel_migration import StructureValidator
+from asqueel_migration.json_producer import JsonStructureProducer
+from asqueel_migration.structures import hashed_name, json_equal
+from asqueel_migration.xml_producer import XmlStructureProducer
 
 # --- a model the XML form CAN express, in both external dialects -----------
 

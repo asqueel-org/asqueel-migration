@@ -1,4 +1,6 @@
-# genro-sqlmigration
+# Asqueel Migration
+
+![Asqueel Migration](https://raw.githubusercontent.com/asqueel-org/asqueel-migration/main/assets/branding/asqueel-migration-primary.svg)
 
 **Database schema migration engine** — compare a desired database
 structure against a live database and generate (or apply) the SQL
@@ -35,7 +37,7 @@ execution.
 Install from PyPI:
 
 ```bash
-pip install "genro-sqlmigration[postgresql]"
+pip install "asqueel-migration[postgresql]"
 ```
 
 Extras: `postgresql` (psycopg 3), `mysql` (PyMySQL), `mssql`
@@ -45,7 +47,7 @@ SQLite needs no extra (stdlib driver).
 ## Quickstart
 
 ```python
-from genro_sqlmigration import (
+from asqueel_migration import (
     JsonStructureProducer, PgDatabase, SqlMigrator, StructureValidator,
 )
 
@@ -92,7 +94,7 @@ Three input formats, from the friendliest to the most technical:
 The complete format reference — columns, dtypes, foreign keys
 (including multi-column), constraints, indexes with per-column sort
 order and WITH options, extensions, event triggers — is in the
-[Producer Guide](https://genro-sqlmigration.readthedocs.io), also
+[Producer Guide](https://asqueel-migration.readthedocs.io), also
 available as [docs/producer_guide.md](docs/producer_guide.md).
 
 ## How it works
@@ -147,7 +149,7 @@ system. Start it on the loopback interface (the CLI default):
 
 ```bash
 pip install -e ".[app,postgresql]"
-kajenn serve application=src/genro_sqlmigration/app.py:EditorApp \
+kajenn serve application=src/asqueel_migration/app.py:EditorApp \
   --host 127.0.0.1 --port 8000
 ```
 
@@ -196,7 +198,7 @@ do not open the editor to untrusted files or expose it through a network proxy.
 ## Documentation
 
 Full documentation on
-[Read the Docs](https://genro-sqlmigration.readthedocs.io).
+[Read the Docs](https://asqueel-migration.readthedocs.io).
 Design notes and milestones live in [roadmap/](roadmap/).
 
 ## License

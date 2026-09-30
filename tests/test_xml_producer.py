@@ -3,10 +3,10 @@
 
 """XML producer tests: a clean SQL-model XML projects to valid migrator JSON."""
 
-from genro_sqlmigration import StructureValidator
-from genro_sqlmigration.json_producer import JsonStructureProducer
-from genro_sqlmigration.structures import json_equal
-from genro_sqlmigration.xml_producer import XmlStructureProducer, struct_to_xml
+from asqueel_migration import StructureValidator
+from asqueel_migration.json_producer import JsonStructureProducer
+from asqueel_migration.structures import json_equal
+from asqueel_migration.xml_producer import XmlStructureProducer, struct_to_xml
 from tests.test_json_producer import MULTICOL_JSON, NAMED_JSON
 
 RECIPE_XML = """<?xml version="1.0" encoding="UTF-8"?>

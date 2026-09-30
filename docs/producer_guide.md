@@ -2,7 +2,7 @@
 
 **Contract**: `format_version = "1.0"`
 
-genro-sqlmigration is ORM-agnostic: it never reads your model. You
+asqueel-migration is ORM-agnostic: it never reads your model. You
 describe the desired database in one of three input formats, the
 library compares it against the live database and generates (or
 applies) the realignment SQL.
@@ -42,7 +42,7 @@ is implied by the compatibility check.
 ## 1. End-to-end quickstart (human JSON)
 
 ```python
-from genro_sqlmigration import (
+from asqueel_migration import (
     JsonStructureProducer, PgDatabase, SqlMigrator, StructureValidator,
 )
 
@@ -116,7 +116,7 @@ connection. It therefore remains present if the following DDL unit fails.
 At the first failure execution terminates with `MigrationExecutionError`:
 
 ```python
-from genro_sqlmigration import MigrationExecutionError
+from asqueel_migration import MigrationExecutionError
 
 try:
     result = migrator.applyChanges()
@@ -142,7 +142,7 @@ infer renames and does not remove extra database objects by default.
 
 ### Local editor trust boundary
 
-The optional editor in `genro_sqlmigration.app` requires Python 3.11 or newer
+The optional editor in `asqueel_migration.app` requires Python 3.11 or newer
 and is intended only for a developer working on their own machine. The core
 library still supports Python 3.10. Run the editor on `127.0.0.1`; the
 application also rejects ASGI clients whose peer address is not loopback. It is
@@ -270,7 +270,7 @@ default, `ignore_constraint_name=True`).
 
 ## 3. The XML format
 
-The same model, XSD-validated (`src/genro_sqlmigration/schemas/
+The same model, XSD-validated (`src/asqueel_migration/schemas/
 sql_model-1.0.xsd`, namespace `urn:genro:sql-model:1.0`):
 
 ```xml
@@ -323,7 +323,7 @@ XML-specific notes:
   quickstart:
 
 ```python
-from genro_sqlmigration import XmlStructureProducer
+from asqueel_migration import XmlStructureProducer
 
 structure = XmlStructureProducer(xml_text).get_json_struct()
 # or XmlStructureProducer.from_file(path)
@@ -367,7 +367,7 @@ value.
 
 The compiled form — what `get_json_struct()` returns and
 `StructureValidator` checks (JSON Schema:
-`src/genro_sqlmigration/schemas/structure-1.0.json`):
+`src/asqueel_migration/schemas/structure-1.0.json`):
 
 - Hierarchy: `root` → `schemas` → `tables` → `columns` / `relations` /
   `constraints` / `indexes`; `extensions` and `event_triggers` at root.
@@ -401,9 +401,9 @@ went through a migration run.
 ## References
 
 - JSON Schema (normalized contract):
-  `src/genro_sqlmigration/schemas/structure-1.0.json`
+  `src/asqueel_migration/schemas/structure-1.0.json`
 - XSD (external XML format):
-  `src/genro_sqlmigration/schemas/sql_model-1.0.xsd`
-- Reference producers: `src/genro_sqlmigration/json_producer.py`,
-  `src/genro_sqlmigration/xml_producer.py`,
+  `src/asqueel_migration/schemas/sql_model-1.0.xsd`
+- Reference producers: `src/asqueel_migration/json_producer.py`,
+  `src/asqueel_migration/xml_producer.py`,
   `tests/support/orm_producer.py`

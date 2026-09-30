@@ -5,8 +5,8 @@ from uuid import uuid4
 
 import pytest
 
-from genro_sqlmigration import JsonStructureProducer, SqliteDatabase, SqlMigrator
-from genro_sqlmigration.writers import MssqlWriter, MysqlWriter, PgWriter, SqliteWriter
+from asqueel_migration import JsonStructureProducer, SqliteDatabase, SqlMigrator
+from asqueel_migration.writers import MssqlWriter, MysqlWriter, PgWriter, SqliteWriter
 
 from .support.orm_producer import SrcModel
 from .support.pg_database import PgTestDatabase

@@ -9,7 +9,7 @@ structure.
 
 import sqlite3
 
-from genro_sqlmigration import SqlMigrator
+from asqueel_migration import SqlMigrator
 
 from .support.orm_producer import OrmJsonProducer, SrcModel
 from .support.sqlite_database import SqliteTestDatabase

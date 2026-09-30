@@ -8,7 +8,7 @@ skipped when Docker is unavailable.
 
 import pytest
 
-from genro_sqlmigration import SqlMigrator
+from asqueel_migration import SqlMigrator
 
 from .support.mysql_database import (
     MysqlTestDatabase,

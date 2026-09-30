@@ -9,7 +9,7 @@ an ORM extractor read a live model. The SQL oracles stay byte-identical.
 SQL comparison, then apply, then re-diff asserting idempotence.
 """
 
-from genro_sqlmigration import SqlMigrator
+from asqueel_migration import SqlMigrator
 
 from .orm_producer import OrmJsonProducer, SrcModel
 from .pg_database import PgTestDatabase

@@ -12,7 +12,7 @@ then schemas ``alfa`` and ``beta`` live inside it.
 
 import pytest
 
-from genro_sqlmigration import SqlMigrator
+from asqueel_migration import SqlMigrator
 
 from .support.mssql_database import MssqlContainer, MssqlTestDatabase
 from .support.orm_producer import OrmJsonProducer, SrcModel

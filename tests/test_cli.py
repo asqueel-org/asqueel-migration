@@ -1,7 +1,7 @@
 # Copyright (c) 2025 Softwell Srl, Milano, Italy
 # SPDX-License-Identifier: Apache-2.0
 
-"""CLI tests: the ``genro-sqlmigrate`` command driven with a JSON job on stdin.
+"""CLI tests: the ``asqueel-migrate`` command driven with a JSON job on stdin.
 
 Exercises the real subprocess boundary against a live PostgreSQL database
 (the ``pg_server`` fixture): a check/migrate/apply/check cycle that mirrors
@@ -15,8 +15,8 @@ import json
 import psycopg
 import pytest
 
-from genro_sqlmigration import JsonStructureProducer
-from genro_sqlmigration.cli import main
+from asqueel_migration import JsonStructureProducer
+from asqueel_migration.cli import main
 
 MODEL = {
     "db": "test_cli_migrate",

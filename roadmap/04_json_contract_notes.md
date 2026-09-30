@@ -29,7 +29,7 @@ limits that the JSON Schema and the producer guide must state.
   `extra_sql`. Note: `sql_type` is a package addition (the legacy
   contract had 7 keys and its orm_extractor never emits it) — the
   schema documents it as the native-type escape hatch.
-- **dtype codes**: the Genro normalized set (see genro-sql doc `03`
+- **dtype codes**: the Genro normalized set (see asqueel doc `03`
   §5.1). Producer-side normalization of ORM-specific types (the
   legacy `GNR_DTYPE_CONVERTER`: X/Z/P → T) is the **producer's
   responsibility** — deliberately removed from the package.
@@ -98,7 +98,7 @@ the M1 fixtures:
 
 All §4 deliverables shipped, plus wave 0:
 
-1. **JSON Schema**: `src/genro_sqlmigration/schemas/structure-1.0.json`
+1. **JSON Schema**: `src/asqueel_migration/schemas/structure-1.0.json`
    (draft 2020-12, named `$defs` per entity, closed enums for entity
    markers, dtype codes and FK actions, `additionalProperties: false`
    on attributes, `format_version` const). Packaged in the wheel.
@@ -129,6 +129,6 @@ All §4 deliverables shipped, plus wave 0:
 
 - Contract decisions: doc `01` §3 (2026-07-08).
 - Divergences vs legacy to encode: doc `02` §B/§D.
-- Legacy dtype tables: genro-sql doc `03` §5.
+- Legacy dtype tables: asqueel doc `03` §5.
 - Producer guide: `docs/producer_guide.md`; schema:
-  `src/genro_sqlmigration/schemas/structure-1.0.json`.
+  `src/asqueel_migration/schemas/structure-1.0.json`.

@@ -12,8 +12,8 @@ if find_spec('kajenn') is None:
 
 from kajenn import AsgiServer  # noqa: E402
 
-from genro_sqlmigration.app import EditorApp  # noqa: E402
-from genro_sqlmigration.editor_service import migrate_from_xml  # noqa: E402
+from asqueel_migration.app import EditorApp  # noqa: E402
+from asqueel_migration.editor_service import migrate_from_xml  # noqa: E402
 
 
 def _request(
@@ -105,7 +105,7 @@ def test_local_json_request_does_not_echo_password(editor_server, monkeypatch):
         captured.update(params=params, xml=xml, apply=apply, schemas=schemas)
         return 'CREATE TABLE demo (id integer);'
 
-    monkeypatch.setattr('genro_sqlmigration.app.migrate_from_xml', fake_migrate)
+    monkeypatch.setattr('asqueel_migration.app.migrate_from_xml', fake_migrate)
     password = 'local-secret-value'
     status, body = _request(
         editor_server,
@@ -134,7 +134,7 @@ def test_password_is_redacted_from_operation_errors(editor_server, monkeypatch):
     def fail(params, xml, apply, schemas):
         raise RuntimeError(f'connection failed with password {params["password"]}')
 
-    monkeypatch.setattr('genro_sqlmigration.app.migrate_from_xml', fail)
+    monkeypatch.setattr('asqueel_migration.app.migrate_from_xml', fail)
     status, body = _request(
         editor_server,
         '/migrate',
@@ -176,12 +176,12 @@ def test_editor_service_keeps_database_only_objects():
     db = object()
     migrator = Mock()
     with (
-        patch('genro_sqlmigration.editor_service.PgDatabase', return_value=db),
+        patch('asqueel_migration.editor_service.PgDatabase', return_value=db),
         patch(
-            'genro_sqlmigration.editor_service.SqlMigrator', return_value=migrator
+            'asqueel_migration.editor_service.SqlMigrator', return_value=migrator
         ) as migrator_class,
-        patch('genro_sqlmigration.editor_service.XmlStructureProducer') as producer,
-        patch('genro_sqlmigration.editor_service.StructureValidator') as validator,
+        patch('asqueel_migration.editor_service.XmlStructureProducer') as producer,
+        patch('asqueel_migration.editor_service.StructureValidator') as validator,
     ):
         producer.return_value.get_json_struct.return_value = {'root': {}}
         validator.return_value.validate.return_value = {'root': {}}

@@ -19,7 +19,7 @@ for filename in sys.argv[1:]:
             names = archive.getnames()
             metadata = archive.extractfile(next(n for n in names if n.endswith('/PKG-INFO'))).read()
     for required in REQUIRED:
-        assert any(('/' + n).endswith('/genro_sqlmigration/' + required) for n in names), required
+        assert any(('/' + n).endswith('/asqueel_migration/' + required) for n in names), required
     requirements = BytesParser().parsebytes(metadata).get_all('Requires-Dist', [])
     assert not any(' @ ' in r for r in requirements), 'Direct URL dependency cannot be published'
     print(f'{path.name}: metadata and packaged contracts OK')

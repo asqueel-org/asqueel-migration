@@ -16,7 +16,7 @@ import socket
 import subprocess
 import time
 
-from genro_sqlmigration.adapters import MssqlDatabase
+from asqueel_migration.adapters import MssqlDatabase
 
 SA_PASSWORD = 'GsmTest!Passw0rd'
 IMAGE = 'mcr.microsoft.com/mssql/server:2022-latest'

@@ -12,7 +12,7 @@ loop end to end.
 import psycopg
 import pytest
 
-from genro_sqlmigration.editor_service import introspect_to_xml, migrate_from_xml
+from asqueel_migration.editor_service import introspect_to_xml, migrate_from_xml
 
 pytestmark = pytest.mark.postgresql
 

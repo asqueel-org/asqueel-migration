@@ -8,8 +8,8 @@ constraint, and the methods that must raise on unsupported operations.
 
 import pytest
 
-from genro_sqlmigration.exceptions import SqlMigrationError
-from genro_sqlmigration.writers import MssqlWriter
+from asqueel_migration.exceptions import SqlMigrationError
+from asqueel_migration.writers import MssqlWriter
 
 
 class TestTypeMap:

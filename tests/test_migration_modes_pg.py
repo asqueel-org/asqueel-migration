@@ -11,7 +11,7 @@ mode). The incompatible-conversion exception is the package
 
 import pytest
 
-from genro_sqlmigration.exceptions import SqlMigrationError
+from asqueel_migration.exceptions import SqlMigrationError
 
 from .support.migration_base import BaseMigrationTest
 from .support.sqltools import normalize_sql

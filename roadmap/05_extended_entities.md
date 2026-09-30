@@ -16,7 +16,7 @@ handlers + `ENTITY_TREE` entry + writer DDL methods — `diff_engine.py`
 and the executor slot model are generic. This document is the design.
 
 ORM-side syntax for declaring these entities is the **producer's**
-business (Genropy legacy / genro-sql); this package fixes the JSON
+business (Genropy legacy / asqueel); this package fixes the JSON
 shape and the migration behavior.
 
 ## 1. Milestone placement and waves

@@ -5,13 +5,13 @@ name: Documentation
     branches: [main]
     paths:
       - 'docs/**'
-      - 'src/genro_sqlmigration/**'
+      - 'src/asqueel_migration/**'
       - '.readthedocs.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'src/genro_sqlmigration/**'
+      - 'src/asqueel_migration/**'
       - '.readthedocs.yaml'
   workflow_dispatch:
 

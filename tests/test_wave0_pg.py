@@ -19,7 +19,7 @@ idempotence re-diff.
 import psycopg
 import pytest
 
-from genro_sqlmigration import MigrationExecutionError
+from asqueel_migration import MigrationExecutionError
 
 from .support.migration_base import BaseMigrationTest
 

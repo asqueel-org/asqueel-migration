@@ -23,16 +23,16 @@ preserve the injected value (the legacy ``OrmExtractor`` wiring was removed).
 import copy
 from unittest.mock import MagicMock
 
-from genro_sqlmigration import (
+from asqueel_migration import (
     SqlMigrator,
     new_index_item,
     new_relation_item,
     new_schema_item,
     new_structure_root,
 )
-from genro_sqlmigration.command_builder import CommandBuilderMixin
-from genro_sqlmigration.readers import PgReader
-from genro_sqlmigration.structures import nested_defaultdict
+from asqueel_migration.command_builder import CommandBuilderMixin
+from asqueel_migration.readers import PgReader
+from asqueel_migration.structures import nested_defaultdict
 
 
 class TestFactoryMutation:

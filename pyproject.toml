@@ -6,7 +6,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "genro-sqlmigration"
+name = "asqueel-migration"
 version = "0.1.0"
 description = "Database schema migration engine - compares desired structure with actual database and generates SQL commands"
 readme = "README.md"
@@ -78,33 +78,33 @@ docs = [
     "sphinxcontrib-mermaid>=1.0.0",
 ]
 all = [
-    "genro-sqlmigration[dev,docs,postgresql]",
+    "asqueel-migration[dev,docs,postgresql]",
 ]
 
 [project.scripts]
 # The migrator CLI drives a live database, so it needs the postgresql extra
-# (psycopg) at runtime: install genro-sqlmigration[postgresql].
-genro-sqlmigrate = "genro_sqlmigration.cli:main"
+# (psycopg) at runtime: install asqueel-migration[postgresql].
+asqueel-migrate = "asqueel_migration.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/genropy/genro-sqlmigration"
-Documentation = "https://genro-sqlmigration.readthedocs.io"
-Repository = "https://github.com/genropy/genro-sqlmigration"
-Issues = "https://github.com/genropy/genro-sqlmigration/issues"
+Homepage = "https://github.com/asqueel-org/asqueel-migration"
+Documentation = "https://github.com/asqueel-org/asqueel-migration/tree/main/docs"
+Repository = "https://github.com/asqueel-org/asqueel-migration"
+Issues = "https://github.com/asqueel-org/asqueel-migration/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/genro_sqlmigration"]
+packages = ["src/asqueel_migration"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src", "/tests", "/scripts", "/docs",
+    "/src", "/tests", "/scripts", "/docs", "/assets",
     "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE", "/pyproject.toml",
 ]
 exclude = ["/docs/_build"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=genro_sqlmigration --cov-report=term-missing --cov-report=html --cov-report=xml"
+addopts = "-v --cov=asqueel_migration --cov-report=term-missing --cov-report=html --cov-report=xml"
 markers = [
     "postgresql: marks tests as requiring a PostgreSQL database (deselect with '-m \"not postgresql\"')",
     "sqlite: marks tests as requiring SQLite (deselect with '-m \"not sqlite\"')",
@@ -138,17 +138,17 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["genro_sqlmigration"]
+known-first-party = ["asqueel_migration"]
 
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
-files = ["src/genro_sqlmigration"]
+files = ["src/asqueel_migration"]
 
 [tool.coverage.run]
-source = ["src/genro_sqlmigration"]
+source = ["src/asqueel_migration"]
 branch = true
 
 [tool.coverage.report]

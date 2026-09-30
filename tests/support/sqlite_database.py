@@ -8,7 +8,7 @@ per-schema database files. The tests therefore exercise the production
 
 import os
 
-from genro_sqlmigration.adapters import SqliteDatabase
+from asqueel_migration.adapters import SqliteDatabase
 
 
 class SqliteTestDatabase(SqliteDatabase):

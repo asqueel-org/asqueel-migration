@@ -8,8 +8,8 @@ and comments).
 
 import pytest
 
-from genro_sqlmigration import FORMAT_VERSION, SqlMigrator, StructureValidator
-from genro_sqlmigration.exceptions import SqlValidationError
+from asqueel_migration import FORMAT_VERSION, SqlMigrator, StructureValidator
+from asqueel_migration.exceptions import SqlValidationError
 
 from .support.orm_producer import OrmJsonProducer, SrcModel
 

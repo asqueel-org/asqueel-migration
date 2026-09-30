@@ -8,13 +8,13 @@ attività di roadmap.
 
 ## Issue GitHub aperte
 
-- [#1 — Semantica affidabile di diff/check e rimozioni](https://github.com/genropy/genro-sqlmigration/issues/1)
-- [#2 — Allineamento di roadmap e documentazione](https://github.com/genropy/genro-sqlmigration/issues/2)
-- [#3 — CI e matrice dei test riproducibili](https://github.com/genropy/genro-sqlmigration/issues/3)
-- [#4 — Integrità di packaging e release](https://github.com/genropy/genro-sqlmigration/issues/4)
-- [#5 — Contratto pubblico di typing e mypy](https://github.com/genropy/genro-sqlmigration/issues/5)
-- [#6 — Sicurezza dell'editor e gestione credenziali](https://github.com/genropy/genro-sqlmigration/issues/6)
-- [#7 — Migrazioni transazionali e risultati strutturati](https://github.com/genropy/genro-sqlmigration/issues/7)
+- [#1 — Semantica affidabile di diff/check e rimozioni](https://github.com/asqueel-org/asqueel-migration/issues/1)
+- [#2 — Allineamento di roadmap e documentazione](https://github.com/asqueel-org/asqueel-migration/issues/2)
+- [#3 — CI e matrice dei test riproducibili](https://github.com/asqueel-org/asqueel-migration/issues/3)
+- [#4 — Integrità di packaging e release](https://github.com/asqueel-org/asqueel-migration/issues/4)
+- [#5 — Contratto pubblico di typing e mypy](https://github.com/asqueel-org/asqueel-migration/issues/5)
+- [#6 — Sicurezza dell'editor e gestione credenziali](https://github.com/asqueel-org/asqueel-migration/issues/6)
+- [#7 — Migrazioni transazionali e risultati strutturati](https://github.com/asqueel-org/asqueel-migration/issues/7)
 
 ## Valutazione sintetica
 

@@ -1,8 +1,8 @@
-# genro-sqlmigration — Design Documentation Set
+# asqueel-migration — Design Documentation Set
 
 **Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: 🔴 DA REVISIONARE
 
-Documentation set for the evolution of genro-sqlmigration into an
+Documentation set for the evolution of asqueel-migration into an
 autonomous, well-documented migration library. Documents keep the 🔴
 status until reviewed and approved (🟡 / 🟢).
 
@@ -17,7 +17,7 @@ status until reviewed and approved (🟡 / 🟢).
 Context documents elsewhere:
 
 - Session handoff (Italian, restart prompt): `temp/handoff_2026-07-08.md`
-- Wider rewrite context: `sub-projects/genro-sql/roadmap/` — doc `03`
+- Wider rewrite context: `sub-projects/asqueel/roadmap/` — doc `03`
   (migration inventory + §7 addendum), doc `06` (adapter inventory —
   origin of writers/readers), doc `07` (2026 compiler experiments).
 - Legacy source of truth: Genropy worktree

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 82" role="img" aria-label="Asqueel — monogramma a anguilla"><title>Asqueel — monogramma a anguilla</title><g transform="translate(8 10)"><defs><mask id="eye-symbol-light" maskUnits="userSpaceOnUse" x="-10" y="-10" width="100" height="90"><rect x="-10" y="-10" width="100" height="90" fill="white"/><circle cx="13.7" cy="11.4" r="1.5" fill="black"/></mask></defs>
+ <g mask="url(#eye-symbol-light)">
+ <path d="M49 25 C32 28 7 29 6 46 C4 65 31 69 49 51 L49 43 C37 61 17 60 17 47 C17 36 32 32 49 30Z" fill="#571F2B"/>
+ <path d="M13 8 C20 -2 43 -5 54 7 C61 15 58 35 58 48 L48 49 L48 19 C48 6 41 3 32 3 C23 3 22 9 20 14Z" fill="#571F2B"/>
+ <path d="M48 46 L58 46 C57 56 64 58 72 53 L73 56 C63 66 48 63 48 51Z" fill="#C78249"/>
+ <path d="M14 5 C21 3 25 10 21 16 C18 22 10 24 9 17 C8 13 10 7 14 5Z" fill="#571F2B"/>
+ </g></g></svg>

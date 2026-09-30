@@ -1,4 +1,4 @@
-# Claude Code Instructions - Genro SQL Migration
+# Claude Code Instructions - Asqueel Migration
 
 **Parent Document**: [meta-genro-modules CLAUDE.md](https://github.com/softwellsrl/meta-genro-modules/blob/main/CLAUDE.md)
 
@@ -16,7 +16,7 @@ An **autonomous, well-documented Python library** for SQL schema
 migrations: compare a normalized JSON description of a database (the
 contract) against a live database and generate/apply the realignment
 SQL. ORM-agnostic by design: the ORM extractor stays in the producer
-(Genropy legacy today, the genro-sql builder tree tomorrow); this
+(Genropy legacy today, the asqueel builder tree tomorrow); this
 package consumes only the JSON.
 
 ### Project-Specific Guidelines
@@ -42,7 +42,7 @@ package consumes only the JSON.
   MySQL, MSSQL — one reader/writer pair per dialect, capability-based
   feature gating.
 - Related design context (wider rewrite this package serves):
-  `sub-projects/genro-sql/roadmap/` docs 03 (§7 addendum), 06, 07.
+  `sub-projects/asqueel/roadmap/` docs 03 (§7 addendum), 06, 07.
 
 ---
 
