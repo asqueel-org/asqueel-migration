@@ -16,10 +16,10 @@ publisher with these exact values:
 | GitHub owner | `asqueel-org` |
 | Repository | `asqueel-migration` |
 | Workflow filename | `publish.yml` |
-| GitHub environment | `pypi` |
+| GitHub environment | `release` |
 
 A pending publisher does not reserve a project name. The first successful upload
-creates the project. The repository must have a `pypi` environment matching this
+creates the project. The repository must have a `release` environment matching this
 configuration. No API token is required. See the official
 [Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/using-a-publisher/).
 
