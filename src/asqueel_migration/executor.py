@@ -28,9 +28,10 @@ Assembly follows a specific order to respect dependencies::
        e. CREATE INDEX (indexes)
     5. ALTER TABLE ADD FOREIGN KEY (FK relations - last)
 
-**Foreign keys are applied last** because they might reference
+**Non-inline foreign keys are applied last** because they might reference
 tables created in the same migration. If they were applied before
-the target tables were created, they would fail.
+the target tables were created, they would fail. SQLite declares them inline
+in CREATE TABLE and permits forward references within the schema.
 
 Execution modes
 ---------------

@@ -1,5 +1,6 @@
 """Check release metadata and packaged contracts before uploading artifacts."""
 
+import os
 import sys
 import tarfile
 import zipfile
@@ -20,6 +21,9 @@ for filename in sys.argv[1:]:
             metadata = archive.extractfile(next(n for n in names if n.endswith('/PKG-INFO'))).read()
     for required in REQUIRED:
         assert any(('/' + n).endswith('/asqueel_migration/' + required) for n in names), required
-    requirements = BytesParser().parsebytes(metadata).get_all('Requires-Dist', [])
+    parsed = BytesParser().parsebytes(metadata)
+    if os.environ.get('GITHUB_REF_TYPE') == 'tag':
+        assert os.environ['GITHUB_REF_NAME'] == f"v{parsed['Version']}", 'Tag/version mismatch'
+    requirements = parsed.get_all('Requires-Dist', [])
     assert not any(' @ ' in r for r in requirements), 'Direct URL dependency cannot be published'
     print(f'{path.name}: metadata and packaged contracts OK')

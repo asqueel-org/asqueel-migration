@@ -1,6 +1,9 @@
 # M2 — JSON Contract Notes (seed of the schema + producer guide)
 
-**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: 🔴 DA REVISIONARE
+**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: Historical design (reviewed for status 2026-10-12)
+
+> Historical record: original plans and dates are preserved below. For current
+> implementation status and remaining work, see [the roadmap index](00_INDEX.md).
 
 The normalized JSON is **the contract** of this package (decision
 closed 2026-07-08; AST and XSD evaluated and rejected — rationale in

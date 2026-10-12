@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "asqueel-migration"
-version = "0.2.1"
+dynamic = ["version"]
 description = "Database schema migration engine - compares desired structure with actual database and generates SQL commands"
 readme = "README.md"
 license = "Apache-2.0"
@@ -78,7 +78,7 @@ docs = [
     "sphinxcontrib-mermaid>=1.0.0",
 ]
 all = [
-    "asqueel-migration[dev,docs,postgresql]",
+    "asqueel-migration[dev,docs,postgresql,mysql,mssql,validation]",
 ]
 
 [project.scripts]
@@ -92,6 +92,9 @@ Documentation = "https://github.com/asqueel-org/asqueel-migration/tree/main/docs
 Repository = "https://github.com/asqueel-org/asqueel-migration"
 Issues = "https://github.com/asqueel-org/asqueel-migration/issues"
 
+[tool.hatch.version]
+path = "src/asqueel_migration/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/asqueel_migration"]
 
@@ -100,7 +103,7 @@ include = [
     "/src", "/tests", "/scripts", "/docs", "/assets",
     "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE", "/pyproject.toml",
 ]
-exclude = ["/docs/_build"]
+exclude = ["/docs/_build", "/docs/decisioni-e-ripartenza.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -146,6 +149,12 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 files = ["src/asqueel_migration"]
+
+[[tool.mypy.overrides]]
+# First fully annotated core module; expansion policy is in docs/maintenance.md.
+module = ["asqueel_migration._sql"]
+disallow_untyped_defs = true
+check_untyped_defs = true
 
 [[tool.mypy.overrides]]
 # dictdiffer has no published stubs or py.typed marker. Follow its installed

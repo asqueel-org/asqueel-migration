@@ -153,8 +153,8 @@ class TestAddIndex:
         conn.close()
 
 
-class TestForeignKeyStripped:
-    def test_fk_stripped_with_warning(self, tmp_path):
+class TestForeignKeyCreated:
+    def test_fk_created_without_warning(self, tmp_path):
         env = SqliteMigration(tmp_path, ['alfa'])
         alfa = env.model.package('alfa')
         users = alfa.table('users', pkey='id')
@@ -166,9 +166,9 @@ class TestForeignKeyStripped:
         )
 
         changes, warnings = env.apply()
-        assert 'FOREIGN KEY' not in changes
-        assert 'REFERENCES' not in changes
-        assert any('foreign_keys' in w for w in warnings)
+        assert 'FOREIGN KEY' in changes
+        assert 'REFERENCES' in changes
+        assert not warnings
 
         residual, _ = env.diff()
         assert residual == ''

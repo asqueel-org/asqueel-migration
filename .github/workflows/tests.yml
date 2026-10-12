@@ -65,10 +65,7 @@ jobs:
       - name: Ruff
         run: ruff check src tests
 
-      # Becomes blocking when issue #5 closes. Running it now keeps the
-      # outstanding typing debt visible without breaking unrelated changes.
-      - name: mypy (informational)
-        continue-on-error: true
+      - name: mypy
         run: mypy src/asqueel_migration
 
   postgresql:

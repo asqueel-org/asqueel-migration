@@ -169,6 +169,7 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         self.backup = backup
         self.ormStructure = {}
         self.warnings = []
+        self.skipped = []
         if structure is not None:
             from .validation import StructureValidator
             self.ormStructure = StructureValidator().validate(self._decode_structure(structure))
@@ -238,6 +239,7 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         introspects the selected schemas through the adapter's reader.
         """
         self.warnings = []
+        self.skipped = []
         self.application_schemas = self.db.getApplicationSchemas()
         self.readOnly_schemas = self.db.readOnlySchemas()
         if self.excludeReadOnly:
@@ -281,9 +283,7 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
             if entity_kind not in caps and root.get(entity_kind):
                 names = ', '.join(root[entity_kind])
                 root[entity_kind] = {}
-                self.warnings.append(
-                    f"unsupported '{entity_kind}': ignored {names}"
-                )
+                self.record_skipped(entity_kind, names, action="ignored")
         for schema_name, schema in root.get('schemas', {}).items():
             for table_name, table in schema.get('tables', {}).items():
                 self.applyTableCapabilities(
@@ -295,35 +295,36 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         if 'foreign_keys' not in caps and table.get('relations'):
             names = ', '.join(table['relations'])
             table['relations'] = {}
-            self.warnings.append(
-                f"unsupported 'foreign_keys': ignored relations on "
-                f"{tablepath} ({names})"
-            )
+            self.record_skipped("foreign_keys", f"relations on {tablepath} ({names})", action="ignored")
+        if 'inline_foreign_keys' in caps:
+            for name, relation in list(table.get('relations', {}).items()):
+                if relation['attributes']['related_schema'] != relation['schema_name']:
+                    del table['relations'][name]
+                    self.record_skipped(
+                        'cross_schema_foreign_keys', f"relation on {tablepath} ({name})", action="ignored"
+                    )
         if 'table_constraints' not in caps and table.get('constraints'):
-            names = ', '.join(table['constraints'])
-            table['constraints'] = {}
-            self.warnings.append(
-                f"unsupported 'table_constraints': ignored constraints on "
-                f"{tablepath} ({names})"
-            )
+            unsupported_names = [
+                name for name, constraint in table['constraints'].items()
+                if not ('unique_constraints' in caps and constraint['attributes']['constraint_type'] == 'UNIQUE')
+            ]
+            if unsupported_names:
+                for name in unsupported_names:
+                    del table['constraints'][name]
+                names = ', '.join(unsupported_names)
+                self.record_skipped("table_constraints", f"constraints on {tablepath} ({names})", action="ignored")
         if 'comments' not in caps:
             if table['attributes'].pop('comment', None):
-                self.warnings.append(
-                    f"unsupported 'comments': ignored comment on {tablepath}"
-                )
+                self.record_skipped("comments", f"comment on {tablepath}", action="ignored")
             for column_name, column in table.get('columns', {}).items():
                 if column['attributes'].pop('comment', None):
-                    self.warnings.append(
-                        f"unsupported 'comments': ignored comment on "
-                        f"{tablepath}.{column_name}"
-                    )
+                    self.record_skipped("comments", f"comment on {tablepath}.{column_name}", action="ignored")
         if 'fk_deferrable' not in caps:
             for relation_name, relation in table.get('relations', {}).items():
                 for key in ('deferrable', 'initially_deferred'):
                     if relation['attributes'].pop(key, None):
-                        self.warnings.append(
-                            f"unsupported 'fk_deferrable': ignored '{key}' "
-                            f"on {tablepath} relation {relation_name}"
+                        self.record_skipped(
+                            "fk_deferrable", f"'{key}' on {tablepath} relation {relation_name}", action="ignored"
                         )
         index_capabilities = (
             ('index_where', 'where'), ('index_method', 'method'),
@@ -335,9 +336,8 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
                 continue
             for index_name, index in table.get('indexes', {}).items():
                 if index['attributes'].pop(attribute, None):
-                    self.warnings.append(
-                        f"unsupported '{capability}': ignored '{attribute}' "
-                        f"on {tablepath} index {index_name}"
+                    self.record_skipped(
+                        capability, f"'{attribute}' on {tablepath} index {index_name}", action="ignored"
                     )
 
     def extractSql(self, schemas=None):

@@ -95,6 +95,9 @@ class CommandBuilderMixin:
     - ``removeDisabled``: flag for disabling removals
     """
 
+    warnings: list[str]
+    skipped: list[dict[str, str]]
+
     def missing_handler_cb(self, **kwargs):
         """Fallback handler for events without a specific handler.
 
@@ -106,6 +109,12 @@ class CommandBuilderMixin:
         """
         return f'missing {kwargs}'
 
+    def record_skipped(self, capability: str, context: str, *, action: str = "skipped") -> None:
+        """Keep machine-readable omissions alongside the legacy warning text."""
+        warning = f"unsupported '{capability}': {action} {context}"
+        self.skipped.append({"capability": capability, "context": context, "warning": warning})
+        self.warnings.append(warning)
+
     def unsupported(self, capability, context):
         """Record a warning and return True if the dialect lacks ``capability``.
 
@@ -115,7 +124,7 @@ class CommandBuilderMixin:
         """
         if capability in self.db.adapter.capabilities:
             return False
-        self.warnings.append(f"unsupported '{capability}': skipped {context}")
+        self.record_skipped(capability, context)
         return True
 
     # -------------------------------------------------------------------
@@ -207,6 +216,10 @@ class CommandBuilderMixin:
             )
             substatements.append(const_sql)
 
+        inline_fks = 'inline_foreign_keys' in self.db.adapter.capabilities
+        if inline_fks:
+            substatements.extend(self.foreignKeySql(rel) for rel in item['relations'].values())
+
         joined_substatements = ',\n '.join(substatements)
         sql = f"CREATE TABLE {sqltablename}(\n {joined_substatements}\n);"
         self.schema_tables(item['schema_name'])[item['table_name']]['command'] = sql
@@ -233,8 +246,9 @@ class CommandBuilderMixin:
         # Indexes and relations are created after CREATE TABLE
         for index_item in item['indexes'].values():
             self.added_index(item=index_item)
-        for rel_item in item['relations'].values():
-            self.added_relation(item=rel_item)
+        if not inline_fks:
+            for rel_item in item['relations'].values():
+                self.added_relation(item=rel_item)
 
     def add_post_command(self, schema_name, table_name, sql):
         """Queue a standalone statement to run after the table's commands.
@@ -294,12 +308,21 @@ class CommandBuilderMixin:
         Args:
             item: Relation entity dictionary with FK attributes.
         """
+        if 'inline_foreign_keys' in self.db.adapter.capabilities and self.unsupported(
+            'add_constraint', f"foreign key on {item['schema_name']}.{item['table_name']}"
+        ):
+            return
         table_dict = self.schema_tables(item['schema_name'])[item['table_name']]
-        relations_dict = table_dict['relations']
+        table_dict['relations'][item['entity_name']] = {
+            "command": f'ADD {self.foreignKeySql(item)}'
+        }
+
+    def foreignKeySql(self, item):
+        """Generate a foreign key clause usable inline or after ADD."""
         relattr = item['attributes']
-        sql = self.db.adapter.struct_foreign_key_sql(
+        return self.db.adapter.struct_foreign_key_sql(
             fk_name=item['entity_name'],
-            columns=item['attributes']['columns'],
+            columns=relattr['columns'],
             related_table=relattr['related_table'],
             related_schema=relattr['related_schema'],
             related_columns=relattr['related_columns'],
@@ -308,9 +331,6 @@ class CommandBuilderMixin:
             deferrable=relattr.get('deferrable'),
             initially_deferred=relattr.get('initially_deferred')
         )
-        relations_dict[item['entity_name']] = {
-            "command": f'ADD {sql}'
-        }
 
     def added_constraint(self, item=None, **kwargs):
         """Generate the ADD CONSTRAINT command (multi-column UNIQUE or CHECK).
@@ -794,7 +814,9 @@ class CommandBuilderMixin:
         if changed_attribute == 'constraint_name':
             if self.ignore_constraint_name:
                 relattr['constraint_name'] = oldvalue
-            else:
+            elif not self.unsupported(
+                'drop_constraint', f"foreign key rename on {item['schema_name']}.{item['table_name']}"
+            ):
                 relations_dict[f'rem_{entity_name}']['command'] = (
                     f"RENAME CONSTRAINT {self.db.adapter.adaptSqlName(oldvalue)} "
                     f"TO {self.db.adapter.adaptSqlName(newvalue)};"
@@ -850,7 +872,9 @@ class CommandBuilderMixin:
         if changed_attribute == 'constraint_name':
             if self.ignore_constraint_name:
                 constraint_attr['constraint_name'] = oldvalue
-            else:
+            elif not self.unsupported(
+                'drop_constraint', f"constraint rename on {item['schema_name']}.{item['table_name']}"
+            ):
                 constraints_dict[f'rem_{entity_name}']['command'] = (
                     f"RENAME CONSTRAINT {self.db.adapter.adaptSqlName(oldvalue)} "
                     f"TO {self.db.adapter.adaptSqlName(newvalue)};"

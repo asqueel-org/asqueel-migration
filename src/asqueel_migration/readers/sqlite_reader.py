@@ -14,7 +14,7 @@ Schemas
 
 SQLite has no schemas; the package maps one schema to one file. The
 reader receives the schema list and the per-schema file paths, ATTACHes
-every file right after connecting and then queries the ``"schema".``
+each non-main file right after connecting and then queries the ``"schema".``
 namespace natively (``"schema".sqlite_master``, ``PRAGMA "schema".*``).
 
 Declared-type fidelity
@@ -32,8 +32,8 @@ v1 limitations
 - The reader maps declared types only, so an integer primary key comes
   back as dtype ``I`` (not ``serial``): migrations targeting SQLite must
   declare integer PKs as ``I``.
-- Foreign keys and CHECK constraints are never emitted (the dialect
-  strips them before the diff).
+- Foreign keys are read from PRAGMAs, which omit names and deferral options.
+- CHECK constraints are not introspected.
 """
 
 import os
@@ -61,6 +61,7 @@ SQLITE_TYPES_DICT = {
     'text': 'T',
     'time': 'H',
     'time without time zone': 'H',
+    'timestamp': 'DH',
     'timestamp without time zone': 'DH',
     'timestamp with time zone': 'DHZ',
     'varchar': 'A',
@@ -102,6 +103,8 @@ class SqliteReader(BaseReader):
             self._conn = sqlite3.connect(dbname)
             self._conn.execute('PRAGMA foreign_keys = ON')
             for schema_name, path in self.schema_files.items():
+                if schema_name == "main":
+                    continue
                 self._conn.execute(
                     f'ATTACH DATABASE ? AS {self.quote_identifier(schema_name)}', (path,)
                 )
@@ -189,7 +192,34 @@ class SqliteReader(BaseReader):
                 table_key = (schema_name, table_name)
                 self._fetch_primary_key(schema_name, table_name, constraints[table_key])
                 self._fetch_unique(schema_name, table_name, constraints[table_key])
+                self._fetch_foreign_keys(schema_name, table_name, constraints[table_key])
         return constraints
+
+    def _fetch_foreign_keys(self, schema_name, table_name, table_constraints):
+        groups = defaultdict(list)
+        for row in self._fetch(
+            f'PRAGMA {self.quote_identifier(schema_name)}.foreign_key_list({self.quote_identifier(table_name)})'
+        ):
+            groups[row[0]].append(row)
+        for fk_id, rows in groups.items():
+            rows.sort(key=lambda row: row[1])
+            _, _, target, _, _, on_update, on_delete, _ = rows[0]
+            related_columns = [row[4] for row in rows]
+            if any(name is None for name in related_columns):
+                # REFERENCES parent without an explicit target column list
+                # means the parent's ordered primary key.
+                pk = {}
+                self._fetch_primary_key(schema_name, target, pk)
+                related_columns = pk.get('PRIMARY KEY', {}).get('columns', [])
+            table_constraints['FOREIGN KEY'][fk_id] = {
+                'constraint_type': 'FOREIGN KEY',
+                'columns': [row[3] for row in rows],
+                'related_schema': schema_name,
+                'related_table': target,
+                'related_columns': related_columns,
+                'on_update': on_update,
+                'on_delete': on_delete,
+            }
 
     def _fetch_primary_key(self, schema_name, table_name, table_constraints):
         pk_columns = []

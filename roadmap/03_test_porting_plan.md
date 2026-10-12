@@ -1,6 +1,9 @@
 # M1 — Test Porting Plan (the legacy oracle suite)
 
-**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: 🔴 DA REVISIONARE
+**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: Historical design (reviewed for status 2026-10-12)
+
+> Historical record: original plans and dates are preserved below. For current
+> implementation status and remaining work, see [the roadmap index](00_INDEX.md).
 
 The package has **zero tests**. The legacy suite
 `gnrpy/tests/sql/test_gnrsqlmigration.py` (1658 lines, 79 test

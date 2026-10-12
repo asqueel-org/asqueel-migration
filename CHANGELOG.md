@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Fix SQLite `main` migration to use the configured file and recognize legacy
+  `TIMESTAMP` declarations without changing stored data (#20, #22).
+- Create and introspect same-schema foreign keys and composite UNIQUE constraints
+  on new SQLite tables; reject unsupported existing-table changes (#21, #24).
+- Expose `SqlMigrator.skipped` and plan `skipped_changes` as structured omissions,
+  preserving warning strings and legacy plan `skipped` (#15).
+- Make mypy blocking, document gradual typing enforcement, use a single Hatch
+  version source, complete the `all` extra and validate release artifacts on PRs
+  (#4, #5).
+- Publish a dialect matrix, known limits and current milestone status (#2).
+
 ## 0.2.1 — 2026-10-12
 
 - Use the connection's database name for creation even when the desired

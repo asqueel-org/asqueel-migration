@@ -22,3 +22,6 @@ HTTP, OpenAPI, MCP and backup/restore belong to the separate
    :caption: Contents
 
    producer_guide
+   capabilities
+   known_limits
+   maintenance
