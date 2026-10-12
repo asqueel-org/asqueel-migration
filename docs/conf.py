@@ -1,7 +1,7 @@
 """Sphinx configuration for asqueel-migration documentation."""
 
 import sys
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib import import_module
 from pathlib import Path
 
 # Add src to path
@@ -11,10 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 project = "Asqueel Migration"
 copyright = "2025-2026, Softwell S.r.l."
 author = "Softwell S.r.l."
-try:
-    release = _pkg_version("asqueel-migration")
-except PackageNotFoundError:
-    release = "0.1.2"
+# Document the checked-out source even when an older wheel is installed.
+release = import_module("asqueel_migration").__version__
 
 # Extensions
 extensions = [
@@ -28,7 +26,10 @@ extensions = [
 ]
 
 # Templates
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build", "Thumbs.db", ".DS_Store",
+    "legacy_test_alignment.md", "decisioni-e-ripartenza.md",
+]
 
 # HTML output
 html_theme = "sphinx_rtd_theme"
@@ -52,6 +53,3 @@ intersphinx_mapping = {
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 napoleon_include_init_with_doc = True
-
-# Keep the internal legacy-test audit out of the developer manual.
-exclude_patterns = ["_build", ".DS_Store", "legacy_test_alignment.md"]

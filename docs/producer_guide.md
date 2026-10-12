@@ -1,6 +1,6 @@
 # Producer Guide — describing your database
 
-**Contract**: `format_version = "1.0"`
+**Library**: 0.2.1 · **Structure contract**: `format_version = "1.0"`
 
 asqueel-migration is ORM-agnostic: it never reads your model. You
 describe the desired database in one of three input formats, the
@@ -11,7 +11,7 @@ The three doors, from the friendliest to the most technical:
 
 1. **Human JSON** — a readable JSON document with names and lists
    (no hashes). Compiled by `JsonStructureProducer`.
-2. **XML** — the same information in XML, validated by the packaged
+2. **XML** — the same information in XML, described by the packaged
    XSD (`sql_model-1.0.xsd`); ideal for editors and GUIs. Compiled by
    `XmlStructureProducer`.
 3. **Normalized JSON** — the internal contract itself, built with the
@@ -43,14 +43,14 @@ is implied by the compatibility check.
 
 ```python
 from asqueel_migration import (
-    JsonStructureProducer, PgDatabase, SqlMigrator, StructureValidator,
+    JsonStructureProducer, PgDatabase, plan_migration, apply_migration,
 )
 
 model = {
     "db": "mydb",
     "schemas": [
         {
-            "name": "public",
+            "name": "library",
             "tables": [
                 {
                     "name": "author", "pkey": "id",
@@ -70,7 +70,7 @@ model = {
                     ],
                     "relations": [
                         {"columns": ["author_id"],
-                         "related_schema": "public",
+                         "related_schema": "library",
                          "related_table": "author",
                          "related_columns": ["id"],
                          "on_delete": "CASCADE"},
@@ -85,30 +85,96 @@ model = {
 structure = JsonStructureProducer(model).get_json_struct()
 
 db = PgDatabase({"dbname": "mydb", "host": "localhost"},
-                application_schemas=["public"])
-migrator = SqlMigrator(db)
-migrator.ormStructure = StructureValidator().validate(structure)
-migrator.prepareMigrationCommands()
-print(migrator.getChanges())        # review the SQL...
-# migrator.applyChanges()           # ...or apply it
+                application_schemas=["library"])
+try:
+    plan = plan_migration(db, structure)
+    print(plan["sql"])
+    print(plan["warnings"])
+    print(plan["plan_id"])           # retain the identifier of the reviewed plan
+
+    # Only after reviewing the SQL and warnings:
+    # result = apply_migration(db, structure, expected_plan=plan["plan_id"])
+    # print(result["verified"], result["remaining"])
+finally:
+    db.closeConnection()
 ```
 
 `JsonStructureProducer` also accepts a JSON string or a file
-(`JsonStructureProducer.from_file(path)`). Swap `PgDatabase` for
-`SqliteDatabase`, `MysqlDatabase` or `MssqlDatabase` for the other
-dialects (each needs its driver extra — see the README).
+(`JsonStructureProducer.from_file(path)`). Compile the human JSON before
+passing it to the migration API: `plan_migration` and `apply_migration` accept
+**normalized** dictionaries or serialized normalized JSON, not the human
+JSON format. Both functions validate and copy their input. Missing input
+(`None`) is rejected before database access.
 
-`StructureValidator().validate()` checks the compiled structure against
-the packaged JSON Schema (with the `validation` extra installed) plus
-the semantic rules a schema cannot express.
+The example uses a dedicated `library` schema and can create a missing database.
+If you target PostgreSQL's `public` schema, create the database before planning:
+PostgreSQL creates `public` automatically, while the current new-database path
+would also attempt to create it.
+
+Install `asqueel-migration[postgresql]` for this example. The library also
+provides `SqliteDatabase`, `MysqlDatabase` and `MssqlDatabase`; MySQL and SQL
+Server need their respective driver extras, while SQLite uses the Python
+standard library. Models must fit the target dialect: for example, SQLite
+models use `I` for integer primary keys rather than PostgreSQL's `serial`,
+and unsupported features are reported in the plan.
+
+`StructureValidator().validate()` remains available for explicit validation.
+It checks structural and semantic rules, plus the packaged JSON Schema when
+the optional `validation` extra is installed. Malformed containers raise
+`SqlValidationError` with field paths even without that extra.
+
+### Review a plan, then apply that plan
+
+A plan contains:
+
+| Field | Meaning |
+| --- | --- |
+| `plan_id` | Fingerprint of the inspected destination, current and desired structures, generated SQL, warnings and removal policy |
+| `sql` | Commands proposed for execution |
+| `warnings` | Diagnostics, including features the target cannot represent |
+| `skipped` | Unsupported features or operations omitted from the plan |
+| `empty` | Whether the generated SQL is empty; check `skipped` as well |
+
+Keep the `plan_id` together with the desired document and removal policy that
+were reviewed. The database facade can be closed after planning and recreated
+with the same connection and schema settings for application.
+`apply_migration(db, structure, expected_plan=reviewed_plan_id)` prepares a new
+plan against the live database and compares its fingerprint with that identifier:
+
+- `StaleMigrationPlan` means the identifier is missing or the plan changed.
+  Inspect a new plan before retrying; do not silently replace the reviewed ID.
+- `UnsupportedMigration` means `skipped` is nonempty. No migration DDL is
+  executed, even if part of the proposed SQL is supported. Adjust the desired
+  model or target capabilities before planning again.
+- On success, `execution` reports the execution mode and completed phases;
+  `remaining` contains a fresh post-apply plan. `verified` is true only when
+  that residual plan has no SQL and no skipped operations.
+
+`verified=False` does not undo executed statements. An error during post-apply
+introspection likewise does not imply rollback of the preceding execution.
+The identifier detects changes before execution; it is not a lock and cannot
+prevent concurrent external DDL between inspection and execution.
+
+The default `allow_removals=False` preserves database-only objects. Set
+`allow_removals=True` for **both** planning and application to enable implemented
+removal operations, currently `DROP COLUMN`. It does not enable inference of
+renames or whole-table removal.
+
+### Connection ownership
+
+The caller owns database facades passed to `plan_migration`, `apply_migration`
+and `SqlMigrator`. Always close them in `finally`, including when planning,
+validation, execution or verification raises an error, as in the quickstart.
+The functions in `editor_service` instead receive connection parameters, create
+their own facades and close them on both success and failure.
 
 ### Applying safely and recovering from errors
 
-`migrator.applyChanges()` uses one transaction for the complete DDL unit on
-PostgreSQL, SQLite and SQL Server. MySQL is explicitly best-effort because DDL
-statements can cause implicit commits. The return value reports `atomic`,
-`best_effort` and the completed phases; non-atomic execution also adds a
-warning to `migrator.warnings`.
+The underlying `SqlMigrator.applyChanges()` uses one transaction for the
+complete DDL unit on PostgreSQL, SQLite and SQL Server. MySQL is explicitly best-effort because DDL
+statements can cause implicit commits. The service returns these details in
+`result["execution"]`: `atomic`, `best_effort` and `phases_applied`.
+Non-atomic execution also adds a warning to `result["warnings"]`.
 
 `CREATE DATABASE`, when required, is executed separately through the manager
 connection. It therefore remains present if the following DDL unit fails.
@@ -118,16 +184,24 @@ At the first failure execution terminates with `MigrationExecutionError`:
 ```python
 from asqueel_migration import MigrationExecutionError
 
+# Reopen the target and use the identifier retained after review.
+reviewed_plan_id = plan["plan_id"]
+db = PgDatabase({"dbname": "mydb", "host": "localhost"},
+                application_schemas=["library"])
 try:
-    result = migrator.applyChanges()
+    result = apply_migration(db, structure, expected_plan=reviewed_plan_id)
 except MigrationExecutionError as error:
     print(error.phase)
     print(error.rolled_back)
     print(error.partial_state_possible)
+    raise
+finally:
+    db.closeConnection()
 ```
 
 There is no automatic retry or reanalysis in the failing invocation. After
-fixing the cause, invoke the migration again. A new run introspects the actual
+fixing the cause, call `plan_migration` again, review the residual SQL and use
+that new identifier for application. A new plan introspects the actual
 database state and shows only the residual additive discrepancy. This is also
 the recovery path for MySQL: statements committed before the error are seen as
 already present, and the remaining changes are proposed. The migrator does not
@@ -140,24 +214,17 @@ infer renames and does not remove extra database objects by default.
 | SQL Server | Transactional DDL generated by the library; rollback on failure |
 | MySQL | Best-effort with warning; partial committed state is possible |
 
-### Local editor trust boundary
+### Server and authored SQL
 
-The optional editor in `asqueel_migration.app` requires Python 3.11 or newer
-and is intended only for a developer working on their own machine. The core
-library still supports Python 3.10. Run the editor on `127.0.0.1`; the
-application also rejects ASGI clients whose peer address is not loopback. It is
-not a multi-user database administration service and must not be published
-through a reverse proxy.
+Since 0.2, HTTP, OpenAPI, MCP, background tasks and backup/restore belong to the
+separate [asqueel-dbmanager](https://github.com/asqueel-org/asqueel-dbmanager)
+application. The migration library has no bundled server or `[app]` extra.
+See the manager's documentation for its deployment and access policies.
+The engine continues to support Python 3.10 and newer.
 
-All REST operations use POST `application/json` bodies. The application rejects
-query strings, so connection passwords do not enter URLs or access logs, and
-redacts the submitted password from operation errors. `migrate` remains a
-dry-run and `apply` remains a separate REST-only operation.
-
-The editor applies the same additive contract as the library: objects present
-only in the database are retained. Edited XML is trusted developer input;
-fields such as `sql_type`, `sqldefault`, `extra_sql` and CHECK clauses contain
-intentional native SQL and must never be accepted from an untrusted source.
+Model fields such as `sql_type`, `sqldefault`, `extra_sql` and CHECK clauses
+contain intentional native SQL. Treat model documents as trusted authored
+input; identifier quoting and structure validation do not sandbox expressions.
 
 ## 2. The human JSON format
 
@@ -211,7 +278,7 @@ otherwise.
 
 ```json
 {"columns": ["author_id"],
- "related_schema": "public", "related_table": "author",
+ "related_schema": "library", "related_table": "author",
  "related_columns": ["id"],
  "on_delete": "CASCADE",              // optional; never emit NO ACTION
  "name": "fk_recipe_author"}          // optional readable name
@@ -270,13 +337,13 @@ default, `ignore_constraint_name=True`).
 
 ## 3. The XML format
 
-The same model, XSD-validated (`src/asqueel_migration/schemas/
+The same model, following the packaged XSD (`src/asqueel_migration/schemas/
 sql_model-1.0.xsd`, namespace `urn:genro:sql-model:1.0`):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <db xmlns="urn:genro:sql-model:1.0" name="mydb">
-  <schema name="public">
+  <schema name="library">
     <table name="author" pkey="id">
       <column name="id" dtype="serial"/>
       <column name="name" dtype="A" size="0:120" notnull="true"/>
@@ -285,33 +352,19 @@ sql_model-1.0.xsd`, namespace `urn:genro:sql-model:1.0`):
       <column name="id" dtype="serial"/>
       <column name="title" dtype="A" size="0:80" notnull="true"/>
       <column name="author_id" dtype="L">
-        <relation to="public.author.id" on_delete="CASCADE"/>
+        <relation to="library.author.id" on_delete="CASCADE"/>
       </column>
-      <!-- multi-column FK: table-level, ordered <to> children -->
-      <relation columns="pa,pb" name="fk_pair">
-        <to schema="s" table="parent" column="a"/>
-        <to schema="s" table="parent" column="b"/>
-      </relation>
-      <constraint type="UNIQUE" columns="title,author_id"/>
-      <constraint type="CHECK" name="ck_recipe_title"
-                  check_clause="(char_length(title) &gt; 0)"/>
       <index columns="title"/>
-      <index name="idx_recent" unique="true">
-        <column name="pa"/>
-        <column name="created" sort="DESC"/>
-        <option key="fillfactor" value="70"/>
-      </index>
     </table>
   </schema>
-  <extension name="unaccent"/>
-  <event_trigger name="audit_ddl">
-    <option key="event" value="ddl_command_end"/>
-  </event_trigger>
 </db>
 ```
 
 XML-specific notes:
 
+- `XmlStructureProducer` parses XML and checks the root element, but does not
+  run XSD validation. Editors or callers can validate against the packaged XSD
+  separately; the migration services validate the compiled normalized structure;
 - a single-column FK nests `<relation to="schema.table.column">` inside
   its column; a multi-column FK is a table-level `<relation>` with a
   `columns` attribute and ordered `<to>` children;
@@ -376,7 +429,8 @@ The compiled form — what `get_json_struct()` returns and
 
 - Hierarchy: `root` → `schemas` → `tables` → `columns` / `relations` /
   `constraints` / `indexes`; `extensions` and `event_triggers` at root.
-  Every entity carries `entity`, `entity_name`, `attributes`.
+  Every entity carries `entity` and `entity_name`; tables and their leaf
+  entities also carry `attributes`. The root and schemas carry child containers.
 - FK / UNIQUE / index dict keys and `entity_name` are the structural
   hashes `fk_*` / `cst_*` / `idx_*` (`hashed_name(schema, table,
   columns, obj_type)`). CHECK constraints are keyed by their required
@@ -393,15 +447,78 @@ factories exported by the package (`new_structure_root`,
 `new_schema_item`, `new_table_item`, `new_column_item`,
 `new_relation_item`, `new_constraint_item`, `new_index_item`,
 `new_extension_item`, `new_event_trigger_item`) — the compilers
-themselves are ~150-line reference producers. A complete ORM-side
+themselves provide reference implementations. A complete ORM-side
 producer lives in `tests/support/orm_producer.py`.
 
-## 7. Re-injection rule
+## 7. Input ownership and repeated preparation
 
-Command handlers mark transient state on the injected structure.
-**Build and inject a fresh structure before every**
-`prepareMigrationCommands()` — never reuse a structure that already
-went through a migration run.
+`SqlMigrator(db, structure=desired)` validates and copies a normalized dictionary
+or JSON document. The legacy `migrator.ormStructure = desired` form also copies
+its input, but preserves the producer-oriented path without automatically
+validating it; use `StructureValidator().validate(desired)` explicitly there
+when needed.
+
+The private source snapshot stays intact. Each `prepareMigrationCommands()`
+starts from a fresh working copy, re-reads the database, reapplies dialect
+filtering and regenerates warnings and SQL. You can safely reuse the original
+input across preparations or database targets without losing metadata.
+
+```python
+from asqueel_migration import SqlMigrator
+
+# db is a caller-owned database facade; structure is normalized input.
+try:
+    migrator = SqlMigrator(db, structure=structure)
+    migrator.prepareMigrationCommands()
+    first_sql = migrator.getChanges()
+
+    migrator.prepareMigrationCommands()  # refresh against the current database
+    refreshed_sql = migrator.getChanges()
+finally:
+    db.closeConnection()
+```
+
+The `ormStructure` getter exposes the working copy, not the private source.
+Mutating that view or the original input does not update the saved source.
+To change the desired schema, reassign `ormStructure` (which clears cached
+commands) or construct a new migrator. SQL and warnings repeat when the input,
+settings and live database are unchanged; a database change can produce a new
+plan. For a reviewed plan that must be checked before execution, use the service
+functions in the quickstart.
+
+## 8. Command-line interface
+
+The `asqueel-migrate` CLI currently supports PostgreSQL. It reads one JSON job
+from stdin containing `connection`, a **normalized** `structure`, and optional
+`options` for `SqlMigrator`. For example, build `job.json` from the quickstart's
+compiled structure:
+
+```python
+import json
+from pathlib import Path
+
+job = {
+    "connection": {
+        "dbname": "mydb", "host": "localhost",
+        "application_schemas": ["library"],
+    },
+    "structure": structure,
+    "options": {"removeDisabled": True},
+}
+Path("job.json").write_text(json.dumps(job), encoding="utf-8")
+```
+
+```bash
+asqueel-migrate migrate < job.json          # print proposed SQL
+asqueel-migrate migrate --apply < job.json  # calculate and execute SQL
+asqueel-migrate check < job.json            # 0: no SQL needed; 1: SQL needed
+```
+
+Each command calculates its own migration. The CLI calls `SqlMigrator` directly
+and does not accept a reviewed `plan_id` or enforce the service's
+`UnsupportedMigration` check. Use `plan_migration` and `apply_migration` when you
+need those guarantees. CLI `check` reports whether SQL was generated; it does
+not certify structural equality or the absence of unsupported features.
 
 ## References
 

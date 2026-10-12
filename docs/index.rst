@@ -12,6 +12,11 @@ design — any producer that emits the JSON contract can drive it.
 
 Supported dialects: PostgreSQL, SQLite, MySQL, MSSQL.
 
+The producer guide covers normalized input, reviewed ``plan_migration`` /
+``apply_migration`` execution, connection ownership and the PostgreSQL CLI.
+HTTP, OpenAPI, MCP and backup/restore belong to the separate
+`Asqueel DB Manager <https://github.com/asqueel-org/asqueel-dbmanager>`_ application.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents
