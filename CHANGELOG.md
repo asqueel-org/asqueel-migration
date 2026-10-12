@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-12
 
-- Prepare 0.2.0: move the Kajenn HTTP/MCP application to the separate
+- Move the Kajenn HTTP/MCP application to the separate
   `asqueel-dbmanager` distribution. The `app` extra and
   `asqueel_migration.app.EditorApp` are removed; Python migration and XML
   service operations remain in this package.
