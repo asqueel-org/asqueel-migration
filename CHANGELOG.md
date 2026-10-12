@@ -13,6 +13,10 @@
 - Add transport-independent `plan_migration` and `apply_migration`, with
   reviewed-plan validation, unsupported-operation rejection and convergence
   verification. Plan identifiers detect drift; they do not lock external DDL.
+- Use the connection's database name for creation even when the desired
+  structure carries a different model label. Reject missing service inputs
+  before database access, and report malformed containers as validation errors
+  with field paths, with or without the optional JSON Schema validator.
 
 - Quote identifiers consistently in migration DDL, introspection and conversion
   backup commands, including names containing double quotes. Primary-key columns,

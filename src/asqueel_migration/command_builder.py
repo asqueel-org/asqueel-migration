@@ -148,8 +148,10 @@ class CommandBuilderMixin:
         Args:
             item: DB entity dictionary with ``entity_name`` and ``schemas``.
         """
+        # Connection settings own the physical destination. The producer's
+        # root name can be a logical model label, including on first creation.
         self.commands['db']['command'] = self.db.adapter.createDbSql(
-            item['entity_name'], 'UNICODE'
+            self.db.get_dbname(), 'UNICODE'
         )
         for schema in item['schemas'].values():
             self.added_schema(item=schema)

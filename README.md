@@ -172,10 +172,18 @@ finally:
 ```
 
 `SqlMigrator(db, structure=desired)` validates and snapshots the input.
+The service functions require a desired schema: `None` is rejected before
+accessing the database. `SqlMigrator(db)` still supports deferred assignment.
+Malformed structure containers raise `SqlValidationError` with their field
+paths, including when the optional `jsonschema` dependency is absent.
 The legacy `migrator.ormStructure = desired` form remains available and now
 copies its input. Each preparation filters a fresh working copy; source data
 and repeated warnings are preserved. To change the desired schema, assign it
 again: edits to the exposed working dictionary do not update the source.
+
+The connection's database name is the physical destination, including for
+`CREATE DATABASE`. The desired structure's `root.entity_name` is a model label
+and does not redirect creation to another database.
 
 Plan identifiers cover the desired/current structure and generated commands.
 They detect drift before execution, but do not prevent concurrent external DDL.

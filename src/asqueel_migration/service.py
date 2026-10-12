@@ -8,7 +8,7 @@ not authorization tokens and cannot prevent concurrent external DDL.
 import hashlib
 import json
 
-from .exceptions import SqlMigrationError
+from .exceptions import SqlMigrationError, SqlValidationError
 from .migrator import SqlMigrator
 
 
@@ -21,6 +21,10 @@ class UnsupportedMigration(SqlMigrationError):
 
 
 def _prepare(database, structure, allow_removals=False):
+    # The legacy constructor permits deferred assignment; service operations
+    # require an explicit desired schema before inspecting the database.
+    if structure is None:
+        raise SqlValidationError(["structure must be a dict or a JSON document containing an object"])
     migrator = SqlMigrator(database, structure=structure, removeDisabled=not allow_removals)
     migrator.prepareMigrationCommands()
     sql = migrator.getChanges()
