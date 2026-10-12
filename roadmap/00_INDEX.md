@@ -15,7 +15,8 @@ The changelog's Unreleased section describes changes after that baseline.
 
 Current priorities are SQLite adoption/constraints, structured omissions, blocking
 typing and reproducible packaging (see Unreleased changes and issues #2, #4, #5,
-#15, #20–#25). SERIAL4 declaration/upgrade and PostgreSQL initial `public` schema
+#15, #20–#25). SERIAL4 declarations are implemented in the development branch; explicit
+SERIAL4-to-SERIAL8 conversion (#27) and PostgreSQL initial `public` schema
 handling remain open. MySQL and SQL Server are supported by CI; additional
 feature work on those dialects is deferred.
 

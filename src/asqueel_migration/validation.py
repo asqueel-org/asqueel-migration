@@ -202,6 +202,8 @@ class StructureValidator:
             if key not in COL_JSON_KEYS:
                 self.errors.append(f"{where}: unknown attribute '{key}'")
         dtype = attributes.get('dtype')
+        if dtype == 'serial4' and (attributes.get('size') or attributes.get('sqldefault')):
+            self.errors.append(f"{where}: serial4 defines its own size and sequence default")
         if dtype is not None and dtype not in DTYPE_CODES:
             self.errors.append(f"{where}: unknown dtype '{dtype}'")
 

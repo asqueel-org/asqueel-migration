@@ -25,6 +25,7 @@ class PgAdapter(BaseAdapter):
     """PostgreSQL adapter: PgWriter for DDL, PgReader for introspection, psycopg 3 for execution."""
 
     TYPE_CONVERSIONS = PgWriter.TYPE_CONVERSIONS
+    TYPE_COMPATIBILITY = frozenset({("serial4", "I")})
     supports_atomic_ddl = True
 
     def __init__(self, database):

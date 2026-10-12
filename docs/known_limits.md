@@ -48,17 +48,25 @@ interchangeable. SQLite integer primary keys should use `I`, not `serial`.
 
 ## PostgreSQL SERIAL4 and SERIAL8
 
-`dtype="serial"` means BIGSERIAL/SERIAL8. An existing bigint column with a
-sequence-backed default is recognized as `serial`; a SERIAL4 column is read as
-`I`. Declaring `I` can adopt an existing SERIAL4 column while retaining its
-sequence/default, but creates an ordinary integer on a fresh database.
+`dtype="serial"` continues to mean BIGSERIAL/SERIAL8. The development branch
+adds `dtype="serial4"` for PostgreSQL's 32-bit integer with a sequence-backed
+default. New tables create SERIAL4 keys; existing integer columns with a
+`nextval(...)` default are read as `serial4`. Planning/applying the matching
+model preserves values, sequence ownership/name/options/current position,
+defaults and dependent constraints without DDL.
 
-There is currently no declaration guaranteeing SERIAL4 autogeneration on both
-fresh and populated databases, and no supported automatic SERIAL4-to-SERIAL8
-migration preserving all sequence and dependency properties. Rejection of a
-populated `I -> serial` change is expected. Do not use `force` as an upgrade
-procedure: it can drop/recreate columns and lose data or dependencies. Issue #25
-tracks the missing contract and upgrade path.
+Legacy `I` declarations can still adopt existing SERIAL4 columns without changing
+them. An `I` declaration on a fresh database remains a plain integer without
+auto-generation. A plain integer without a sequence default is not SERIAL4.
+The new declaration is PostgreSQL-only and cannot override `size` or `sqldefault`.
+This feature is unreleased after 0.2.1 and requires the coordinated Asqueel grammar
+update when used through `AsqueelDb`.
+
+Automatic conversions to/from `serial4` are rejected, including empty columns
+and `force`/`backup` modes; adopting SERIAL4 as `I` is the compatibility exception.
+The separate [issue #27](https://github.com/asqueel-org/asqueel-migration/issues/27)
+tracks the explicit SERIAL4-to-SERIAL8 upgrade preserving sequences and
+constraints. Changing the declaration to `serial` is not an upgrade procedure.
 
 ## PostgreSQL initial public schema
 

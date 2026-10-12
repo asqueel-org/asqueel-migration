@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add PostgreSQL `serial4` declarations across JSON/XML contracts, SQL generation
+  and introspection. Preserve existing SERIAL4 sequences/data and legacy `I`
+  adoption; retain `serial` as SERIAL8. Refuse implicit SERIAL4 conversions (#25);
+  explicit SERIAL4-to-SERIAL8 migration is tracked separately in #27.
+
 - Fix SQLite `main` migration to use the configured file and recognize legacy
   `TIMESTAMP` declarations without changing stored data (#20, #22).
 - Create and introspect same-schema foreign keys and composite UNIQUE constraints

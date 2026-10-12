@@ -54,7 +54,7 @@ boundary (the migrator diffs the ``root`` subtree only).
 
 DTYPE_CODES = (
     'A', 'B', 'C', 'D', 'DH', 'DHZ', 'DT', 'H', 'HZ', 'I', 'L', 'M',
-    'N', 'O', 'P', 'R', 'T', 'TSV', 'VEC', 'X', 'Z', 'jsonb', 'serial',
+    'N', 'O', 'P', 'R', 'T', 'TSV', 'VEC', 'X', 'Z', 'jsonb', 'serial', 'serial4',
 )
 """Closed set of normalized dtype codes accepted by the contract."""
 

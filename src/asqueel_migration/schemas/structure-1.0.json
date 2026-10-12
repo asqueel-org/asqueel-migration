@@ -12,7 +12,7 @@
   "additionalProperties": false,
   "$defs": {
     "dtype": {
-      "enum": ["A", "B", "C", "D", "DH", "DHZ", "DT", "H", "HZ", "I", "L", "M", "N", "O", "P", "R", "T", "TSV", "VEC", "X", "Z", "jsonb", "serial"]
+      "enum": ["A", "B", "C", "D", "DH", "DHZ", "DT", "H", "HZ", "I", "L", "M", "N", "O", "P", "R", "T", "TSV", "VEC", "X", "Z", "jsonb", "serial", "serial4"]
     },
     "fk_action": {
       "enum": ["RESTRICT", "CASCADE", "SET NULL", "SET DEFAULT"]
