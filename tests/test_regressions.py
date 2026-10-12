@@ -209,7 +209,8 @@ class TestOrmStructureInjection:
         injected = {'root': {'entity': 'db', 'entity_name': 'x', 'schemas': {}}}
         migrator.ormStructure = injected
         migrator.extractOrm()
-        assert migrator.ormStructure is injected
+        assert migrator.ormStructure == injected
+        assert migrator.ormStructure is not injected
 
 
 class TestAdditiveCompatibilityDiff:

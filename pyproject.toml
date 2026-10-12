@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "asqueel-migration"
-version = "0.1.2"
+version = "0.2.0"
 description = "Database schema migration engine - compares desired structure with actual database and generates SQL commands"
 readme = "README.md"
 license = "Apache-2.0"
@@ -56,10 +56,6 @@ mssql = [
 ]
 validation = [
     "jsonschema>=4.18",
-]
-app = [
-    "kajenn>=0.1.0,<0.2.0",
-    "genro-routes>=0.30.0",
 ]
 dev = [
     "pytest>=7.0",

@@ -98,6 +98,9 @@ Typical usage example::
     report = migrator.verifyConversionBackups()
 """
 
+import copy
+import json
+
 from .command_builder import CommandBuilderMixin
 from .diff_engine import DiffMixin
 from .exceptions import NonExistingDbException
@@ -138,7 +141,8 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
                  excludeReadOnly=True,
                  removeDisabled=True,
                  force=False,
-                 backup=False):
+                 backup=False,
+                 *, structure=None):
         self.db = db
         self.extensions = extensions.split(',') if extensions else []
         self.commands = {}
@@ -154,6 +158,34 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         self.backup = backup
         self.ormStructure = {}
         self.warnings = []
+        if structure is not None:
+            from .validation import StructureValidator
+            self.ormStructure = StructureValidator().validate(self._decode_structure(structure))
+
+    @staticmethod
+    def _decode_structure(value):
+        if isinstance(value, str):
+            value = json.loads(value)
+        if not isinstance(value, dict):
+            raise TypeError('structure must be a dict or a JSON document containing an object')
+        return value
+
+    @property
+    def ormStructure(self):
+        """Current working structure; assign a new input to replace the source.
+
+        Assignment accepts a dict or serialized JSON and takes an independent
+        snapshot. Preparation always starts from that snapshot, before dialect
+        filtering. Mutating this working view does not update the source.
+        """
+        return self._orm_structure
+
+    @ormStructure.setter
+    def ormStructure(self, value):
+        self._source_structure = copy.deepcopy(self._decode_structure(value))
+        self._orm_structure = copy.deepcopy(self._source_structure)
+        self.commands = {}
+        self.sql_commands = {}
 
     def prepareMigrationCommands(self):
         """Prepare migration commands by comparing ORM and DB.
@@ -171,6 +203,7 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         """
         self.prepareStructures()
         self.commands = nested_defaultdict()
+        self.sql_commands = {}
         for evt, kw in self.dictDifferChanges():
             if evt == 'removed' and self.removeDisabled:
                 continue
@@ -211,19 +244,14 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         )
 
     def extractOrm(self):
-        """Keep the caller-injected ORM structure.
+        """Restore a fresh working copy of the caller-injected source.
 
-        The package has no ORM extractor by design: the producer builds
-        the normalized JSON and assigns it to ``ormStructure`` before
-        running the migration. This hook guarantees the attribute is a
-        dict and strips the optional ``format_version`` envelope key
-        (validated at the boundary, never diffed).
+        Producers own schema extraction. Dialect filtering only changes this
+        working copy; every preparation starts with the complete source and
+        regenerates its warnings. The version envelope never enters the diff.
         """
-        self.ormStructure = self.ormStructure or {}
-        if 'format_version' in self.ormStructure:
-            self.ormStructure = {
-                k: v for k, v in self.ormStructure.items() if k == 'root'
-            }
+        self._orm_structure = copy.deepcopy(self._source_structure)
+        self._orm_structure.pop('format_version', None)
 
     def applyCapabilities(self):
         """Strip from ormStructure what the target dialect cannot represent.
