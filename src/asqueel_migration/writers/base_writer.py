@@ -35,7 +35,8 @@ class BaseWriter(ABC):
     #   representation: 'extensions', 'event_triggers', 'comments',
     #     'foreign_keys', 'table_constraints', 'fk_deferrable',
     #     'index_where', 'index_method', 'index_tablespace',
-    #     'index_with_options'
+    #     'index_with_options', 'unique_constraints' (UNIQUE subset only)
+    #   placement: 'inline_foreign_keys' (CREATE TABLE only; no ALTER ADD)
     #   DDL operations: 'alter_column_type', 'drop_constraint',
     #     'add_constraint'
     CAPABILITIES: frozenset[str] = frozenset()

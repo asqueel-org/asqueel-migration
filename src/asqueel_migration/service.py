@@ -29,7 +29,8 @@ def _prepare(database, structure, allow_removals=False):
     migrator.prepareMigrationCommands()
     sql = migrator.getChanges()
     warnings = list(migrator.warnings)
-    skipped = [warning for warning in warnings if warning.startswith("unsupported '")]
+    skipped_changes = [dict(change) for change in migrator.skipped]
+    skipped = [change["warning"] for change in skipped_changes]
     snapshot = {
         'database': database.get_dbname(),
         'target': {key: value for key, value in database.connection_params().items()
@@ -44,7 +45,7 @@ def _prepare(database, structure, allow_removals=False):
     plan_id = hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest()
     return migrator, {
         'plan_id': plan_id, 'sql': sql, 'warnings': warnings,
-        'skipped': skipped, 'empty': not sql.strip(),
+        'skipped': skipped, 'skipped_changes': skipped_changes, 'empty': not sql.strip(),
     }
 
 

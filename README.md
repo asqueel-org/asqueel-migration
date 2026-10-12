@@ -49,7 +49,7 @@ pip install "asqueel-migration[postgresql]"
 
 Extras: `postgresql` (psycopg 3), `mysql` (PyMySQL), `mssql`
 (pymssql), `validation` (jsonschema), `docs`, `dev`, `all`.
-SQLite needs no extra (stdlib driver).
+SQLite needs no extra (stdlib driver). `all` includes all the extras listed above.
 
 ## Quickstart
 
@@ -75,6 +75,7 @@ structure = JsonStructureProducer(model).get_json_struct()
 
 db = PgDatabase({"dbname": "mydb", "host": "localhost"},
                 application_schemas=["public"])
+# Pre-create mydb when using public; see docs/known_limits.md.
 migrator = SqlMigrator(db)
 migrator.ormStructure = StructureValidator().validate(structure)
 migrator.prepareMigrationCommands()
@@ -230,7 +231,10 @@ installed `dictdiffer` source because it has no published stubs.
 
 Full documentation on
 [Read the Docs](https://asqueel-migration.readthedocs.io).
-Design notes and milestones live in [roadmap/](roadmap/).
+See the [dialect matrix](docs/capabilities.md), [known limits](docs/known_limits.md),
+and [test/release instructions](docs/maintenance.md). Features marked unreleased
+are not in the published 0.2.1 package.
+Current milestones and historical designs are indexed in [roadmap/](roadmap/00_INDEX.md).
 
 ## License
 

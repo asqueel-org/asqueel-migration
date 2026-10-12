@@ -1,6 +1,9 @@
 # M2.5 — Extended Entities (views, functions, triggers, types, sequences)
 
-**Version**: 0.2.0 · **Last Updated**: 2026-07-09 · **Status**: 🔴 DA REVISIONARE
+**Version**: 0.2.0 · **Last Updated**: 2026-07-09 · **Status**: Historical design (reviewed for status 2026-10-12)
+
+> Historical record: original plans and dates are preserved below. For current
+> implementation status and remaining work, see [the roadmap index](00_INDEX.md).
 
 Owner request (2026-07-08): the migration system must also define and
 migrate views, procedures/functions, triggers and related entities

@@ -1,6 +1,9 @@
 # M0 — Parity Audit: package vs legacy gnrsqlmigration
 
-**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: 🔴 DA REVISIONARE
+**Version**: 0.1.0 · **Last Updated**: 2026-07-08 · **Status**: Historical design (reviewed for status 2026-10-12)
+
+> Historical record: original plans and dates are preserved below. For current
+> implementation status and remaining work, see [the roadmap index](00_INDEX.md).
 
 Package @ `9a91322` (extracted 2026-02-16) compared module-by-module
 against Genropy `develop`, `gnrpy/gnr/sql/gnrsqlmigration/`. Six legacy

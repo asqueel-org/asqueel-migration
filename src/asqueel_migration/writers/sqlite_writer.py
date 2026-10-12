@@ -19,9 +19,9 @@ database is diff-stable.
 Capabilities
 ------------
 
-SQLite declares only ``index_where``. Foreign keys, table constraints,
-comments, extensions and event triggers are stripped from the ORM
-structure before the diff by the shared migrator; ``alter_column_type``,
+SQLite supports partial indexes, inline same-schema foreign keys and UNIQUE
+constraints on new tables. CHECK, comments, extensions and event triggers are
+stripped from the desired structure before the diff; ``alter_column_type``,
 ``drop_constraint`` and ``add_constraint`` are gated by the shared command
 builder. The unsupported DDL methods below are therefore never reached
 through the gates/strips and raise an explicit error if called directly.
@@ -62,9 +62,10 @@ class SqliteWriter(BaseWriter):
 
     TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
 
-    # SQLite only supports partial (WHERE) indexes among the optional
-    # representation/DDL capabilities (see BaseWriter.CAPABILITIES).
-    CAPABILITIES = frozenset({'index_where'})
+    # Represent FKs and UNIQUE, but gate ALTER ADD/DROP separately.
+    CAPABILITIES = frozenset({
+        'index_where', 'foreign_keys', 'inline_foreign_keys', 'unique_constraints',
+    })
 
     def column_sql_type(self, dtype, size=None):
         """Return the declared SQLite type for a dtype and size.
@@ -228,7 +229,18 @@ class SqliteWriter(BaseWriter):
     def foreign_key_sql(self, fk_name, columns, related_table, related_schema,
                         related_columns, on_delete=None, on_update=None,
                         deferrable=False, initially_deferred=False):
-        self._unsupported('foreign_key_sql')
+        if deferrable or initially_deferred:
+            self._unsupported('deferrable foreign keys')
+        q = self.quote_identifier
+        local = ', '.join(q(col) for col in columns)
+        remote = ', '.join(q(col) for col in related_columns)
+        # SQLite resolves REFERENCES within the table's own database and
+        # rejects a schema-qualified target. Cross-schema relations are gated.
+        sql = f'CONSTRAINT {q(fk_name)} FOREIGN KEY ({local}) REFERENCES {q(related_table)} ({remote})'
+        for clause, action in (('DELETE', on_delete), ('UPDATE', on_update)):
+            if action:
+                sql += f' ON {clause} {action}'
+        return sql
 
     def execute(self, sql, auto_commit=False, manager=False):
         self._unsupported('execute')

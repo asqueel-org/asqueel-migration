@@ -15,7 +15,8 @@ Schemas via ATTACH DATABASE
 
 SQLite has no schemas: the mapping is one file per schema. Given
 ``connection_params = {'dbname': '/abs/path/base.db'}``, schema ``<s>``
-lives in ``<dirname>/<stem>_<s>.db``. Every connection ATTACHes all the
+lives in ``<dirname>/<stem>_<s>.db``; ``main`` uses the configured file.
+Every connection ATTACHes all the
 schema files and enables foreign keys, so ``"schema"."table"`` qualified
 names work natively. ``createSchemaSql`` returns the ATTACH statement (it
 depends on the path, so it lives on the adapter, not the static writer).
@@ -171,6 +172,8 @@ class SqliteAdapter(BaseAdapter):
         The writer's ``create_schema_sql`` cannot know the path, so schema
         creation is resolved here from ``self.database``.
         """
+        if schema_name == "main":
+            return ""  # The configured database is already open as main.
         path = self.database.schema_files()[schema_name]
         path_literal = "'" + path.replace("'", "''") + "'"
         return f'ATTACH DATABASE {path_literal} AS {self.writer.quote_identifier(schema_name)};'
@@ -268,7 +271,8 @@ class SqliteDatabase(Database):
     """Production SQLite database facade.
 
     Consumers pass ``connection_params = {'dbname': '/abs/path/base.db'}``
-    and the schema lists; schema ``<s>`` maps to ``<dir>/<stem>_<s>.db``.
+    and the schema lists; ``main`` uses that file and any other schema
+    ``<s>`` maps to ``<dir>/<stem>_<s>.db``.
     """
 
     def __init__(self, connection_params, application_schemas=None,
@@ -294,14 +298,14 @@ class SqliteDatabase(Database):
         return dict(self._connection_params)
 
     def schema_files(self):
-        """Map every known schema to its ``<dir>/<stem>_<schema>.db`` file."""
+        """Map attached schemas to files; ``main`` is the configured database."""
         dbname = self.get_dbname()
         directory = os.path.dirname(dbname)
         stem = os.path.splitext(os.path.basename(dbname))[0]
         schemas = self._application_schemas + self._read_only_schemas + self._tenant_schemas
         return {
             schema_name: os.path.join(directory, f'{stem}_{schema_name}.db')
-            for schema_name in schemas
+            for schema_name in schemas if schema_name != "main"
         }
 
     # -- Schemas seen by the migrator -----------------------------------------

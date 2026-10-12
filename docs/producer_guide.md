@@ -132,7 +132,8 @@ A plan contains:
 | `plan_id` | Fingerprint of the inspected destination, current and desired structures, generated SQL, warnings and removal policy |
 | `sql` | Commands proposed for execution |
 | `warnings` | Diagnostics, including features the target cannot represent |
-| `skipped` | Unsupported features or operations omitted from the plan |
+| `skipped` | Unsupported features or operations omitted from the plan (legacy strings) |
+| `skipped_changes` | Structured omissions: `capability`, `context`, `warning` (unreleased after 0.2.1) |
 | `empty` | Whether the generated SQL is empty; check `skipped` as well |
 
 Keep the `plan_id` together with the desired document and removal policy that
@@ -529,3 +530,9 @@ not certify structural equality or the absence of unsupported features.
 - Reference producers: `src/asqueel_migration/json_producer.py`,
   `src/asqueel_migration/xml_producer.py`,
   `tests/support/orm_producer.py`
+
+## Dialect support
+
+See the [capability matrix](capabilities.md), [known limits](known_limits.md) and
+[development/release checks](maintenance.md). Features marked unreleased are
+not present in the published 0.2.1 package.

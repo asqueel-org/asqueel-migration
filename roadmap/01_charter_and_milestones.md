@@ -1,120 +1,50 @@
-# Charter and Milestones
+# Current charter and milestones
 
-**Version**: 0.1.1 · **Last Updated**: 2026-07-09 · **Status**: 🔴 DA REVISIONARE
+**Updated: 2026-10-12.** Baseline: library 0.2.1, structure contract 1.0.
 
-## 1. Goal
+## Scope and architecture
 
-An **autonomous, well-documented Python library** for SQL schema
-migrations. It compares two instances of a normalized JSON structure —
-one produced from an application model (any ORM), one introspected
-from a live database — and generates, orders and optionally applies
-the SQL needed to realign the database.
+The library compares a producer-supplied normalized schema with the live database
+and generates migrations. Producers own application model extraction; the engine
+owns validation, introspection, diff, SQL generation and execution. It does not
+read ORM trees itself. JSON and XML producers share the normalized contract.
 
-Scope fixed by the owner (2026-07-08):
+`SqlMigrator` retains the legacy Python surface. `plan_migration` and
+`apply_migration` add reviewed plan identifiers, unsupported-operation rejection
+and convergence reporting. Inputs are copied and preparation is repeatable.
+Callers own database connections. The CLI remains a minimal PostgreSQL automation
+interface without the reviewed-plan protocol.
 
-1. **ORM-agnostic, guaranteed** — the package never imports an ORM;
-   producers build the JSON. The Genropy `orm_extractor` stays in
-   Genropy legacy; the future asqueel builder tree will project into
-   the same JSON.
-2. **Migrations toward multiple databases** — PostgreSQL first (95% of
-   real usage), then SQLite, MySQL, MSSQL; one reader/writer pair per
-   dialect with capability-based gating.
-3. **A documented, validated JSON contract** — including guidance for
-   producers on how to build the JSON ("how to get there"), and
-   validation at the package boundary.
+HTTP, OpenAPI and MCP are in the separate Asqueel DB Manager package. Consumers
+include Asqueel's native migration API and DB Manager; changes must preserve
+those contracts. The previous proposed Genropy rollout is not evidence of an
+actual migration of every legacy consumer.
 
-## 2. Architecture recap (as extracted, verified 2026-07-08)
+## Delivery
 
-- **Core** (shared, dialect-free): `structures.py` (entity factories,
-  `hashed_name`, cleaning), `diff_engine.py` (dictdiffer → semantic
-  events), `command_builder.py` (events → SQL fragments),
-  `executor.py` (ordering + execution + backup verify), `migrator.py`
-  (orchestrator; `ormStructure` injected by the caller),
-  `db_extractor.py` (DB → JSON via reader), `exceptions.py`.
-- **Per-dialect**: `readers/` (introspection → JSON;
-  `pg_reader.py` ports the legacy `struct_get_*` queries) and
-  `writers/` (DDL fragments; `pg_writer.py` ports the legacy
-  `struct_*_sql` surface).
-- **`database.py`**: `Database`/`BaseAdapter` facade replicating the
-  legacy `db`/`db.adapter` interface consumed by the core modules —
-  this is why `command_builder`/`executor`/`db_extractor` are
-  near-identical to legacy (9–23 changed lines each, adaptations only).
-- Dependencies: `dictdiffer` (runtime), `psycopg[binary]>=3.1` as
-  `postgresql` extra. No `gnr.*` imports anywhere.
+The [roadmap index](00_INDEX.md) records current milestone status. M0–M2 are
+implemented, and the four M3 adapters exist. Extended-entity wave 0 (CHECK and
+comments) exists on supporting dialects. Waves 1–3 remain proposals, with no
+promised release date or structure-version bump.
 
-## 3. Contract decisions (closed 2026-07-08 — do not reopen)
+Post-0.2.1 work addresses SQLite `main`, legacy TIMESTAMP adoption, new-table
+FK/UNIQUE support, structured omissions, typing and package integrity. Features
+marked Unreleased must not be assumed available from PyPI 0.2.1.
 
-- **The intermediate stays JSON.** Chosen originally for speed; its
-  decisive value is decoupling: serializable snapshots, literal test
-  fixtures, language-agnostic producers, external validation.
-- **AST rejected as contract**: rich typed trees already exist at both
-  ends (legacy model obj, asqueel source tree); the intermediate
-  must stay the dumb, stable common denominator. Typed dataclasses MAY
-  appear later as an internal view that serializes to the same JSON
-  (hardening, post-M1).
-- **XSD/XML rejected as contract**: the engine is dict-native end to
-  end; XML would add an object-model layer and text-encoding
-  conventions for no decisive gain. XSD's genuine plus (`keyref`) is
-  recovered by a semantic validation pass inside `validate()`. The
-  XSD affinity of genro-builders belongs to the *model source*
-  round-trip in asqueel, not to this contract.
+## Remaining boundaries
 
-## 4. Consumers
+- Preserve the additive contract: database-only objects remain, except the
+  explicitly enabled DROP COLUMN operation. Renames are not inferred.
+- Target DDL is atomic on PostgreSQL, SQLite and SQL Server; MySQL is best-effort.
+  Database creation is separate and plan identifiers do not prevent concurrent
+  external DDL.
+- Existing SQLite constraint transformations need table rebuilding, which is not
+  implemented. Cross-file FKs and requested deferral are unsupported.
+- SERIAL4 autogeneration and safe SERIAL4-to-SERIAL8 upgrades require an explicit
+  contract decision. PostgreSQL initial `public` creation remains a known limit.
+- Keep MySQL/SQL Server integration coverage; defer additional dialect work.
+- Introduce stronger type annotations/protocols gradually, without weakening the
+  blocking checks or changing the public JSON contract unintentionally.
 
-- **Genropy legacy** — keeps `orm_extractor`, produces the JSON, will
-  depend on this package (integration after M1 makes it safe).
-- **asqueel** (future) — projects the builder source tree into the
-  JSON; full DDL render may be expressed as "diff against an empty
-  database" (to be confirmed on the asqueel side).
-
-## 5. Milestones
-
-- **M0 — Parity audit** ✅ done 2026-07-08 → doc `02`. Outcome: 4
-  regressions to backport, 2 producer-side rules to document, the
-  adaptations verified sound.
-- **M1 — Test suite**: port the legacy oracle suite (122 exact-SQL
-  cases on live PostgreSQL + activate the 10 dormant tests) → doc
-  `03`. The §A backports of doc `02` land WITH the tests that pin
-  them (red from legacy → fix → green). Package goes from 0 tests to
-  the full de-facto spec.
-- **M2 — JSON contract**: rigorous JSON Schema (`$defs`, closed
-  enums, `format_version`), semantic validation pass (referential
-  coherence) and producer guide → doc `04`. Includes **wave 0** of
-  the extended entities (CHECK constraints + comments — they complete
-  existing entity kinds, so schema v1.0 ships complete) → doc `05`.
-- **M2.5 — Extended entities** (owner request 2026-07-08): views +
-  materialized views (1.1), functions/procedures + table triggers
-  (1.2), custom types + sequences (1.3) — three waves, each a minor
-  `format_version` bump; capability flags on readers/writers born
-  here. Full design → doc `05`. Starts only with M1 green.
-- **M3 — Multi-DB**: `sqlite` reader/writer (reduced capabilities),
-  then `mysql`, `mssql`. One dialect at a time, each with its oracle
-  subset.
-- **M4 — Consumers integration**: Genropy legacy depends on the
-  package; asqueel tree→JSON projection when its grammar exists.
-
-## 6. Hardening backlog (post-M1, decide then)
-
-- Typed diff events (dataclasses) replacing dict fragments — the
-  fragile generic→semantic adaptation layer.
-- Native structural walker (name-keyed JSONs) replacing `dictdiffer`
-  (frozen upstream since 2021) — only with the suite green.
-- `previous_name` producer hint for rename support (state diffs cannot
-  detect renames; today rename = drop+add).
-- Migration atomicity option (legacy applies with per-statement
-  autocommit; a failed run leaves the DB partially migrated).
-- Opt-in `rebuild_views` flag for incompatible view changes (wave 1
-  ships conservative `CREATE OR REPLACE` only — doc `05` §7.1,
-  decided 2026-07-09). If a real case demands it, prefer a targeted
-  drop of the declared views in reverse producer order over
-  `DROP ... CASCADE`.
-- ~~Missing entities inherited from the legacy roadmap~~ — promoted
-  to milestone M2.5 (owner request 2026-07-08), design in doc `05`.
-
----
-
-## Riferimenti
-
-- Owner decisions: session of 2026-07-08.
-- Legacy: genropy `develop`, `gnrpy/gnr/sql/gnrsqlmigration/`.
-- Wider rewrite: `sub-projects/asqueel/roadmap/`.
+Detailed support, tests and release gates are in the public documentation rather
+than inferred from the historical design files.

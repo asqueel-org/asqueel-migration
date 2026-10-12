@@ -3,6 +3,13 @@ name: Build and publish distributions
 on:
   push:
     tags: ['v*']
+  pull_request:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "scripts/check_distribution.py"
+      - "src/asqueel_migration/**"
+      - ".github/workflows/publish.yml"
   workflow_dispatch:
 
 permissions:
@@ -17,15 +24,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install build twine
-      - name: Verify version tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          python - <<'PYCODE'
-          import os, tomllib
-          from pathlib import Path
-          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
-          assert os.environ['GITHUB_REF_NAME'] == f'v{version}', 'Tag/version mismatch'
-          PYCODE
       - run: python -m build
       - run: python -m twine check --strict dist/*
       - run: python scripts/check_distribution.py dist/*

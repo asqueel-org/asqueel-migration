@@ -129,7 +129,7 @@ class TestUnsupportedRaise:
         lambda w: w.create_extension_sql('unaccent'),
         lambda w: w.comment_on_column_sql('alfa', 'doc', 'c', 'x'),
         lambda w: w.comment_on_table_sql('alfa', 'doc', 'x'),
-        lambda w: w.foreign_key_sql('fk', ['a'], 'other', 'alfa', ['id']),
+        lambda w: w.foreign_key_sql('fk', ['a'], 'other', 'alfa', ['id'], deferrable=True),
         lambda w: w.execute('SELECT 1'),
     ])
     def test_raises_sql_migration_error(self, writer, call):
