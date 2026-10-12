@@ -60,7 +60,7 @@ class SqliteWriter(BaseWriter):
     types (see module docstring). No type conversions are supported.
     """
 
-    TYPE_CONVERSIONS = {}
+    TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
 
     # SQLite only supports partial (WHERE) indexes among the optional
     # representation/DDL capabilities (see BaseWriter.CAPABILITIES).

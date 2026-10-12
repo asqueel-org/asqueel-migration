@@ -6,7 +6,7 @@ This module contains the :class:`SqlMigrator` class, the main entry point
 of the migration system. SqlMigrator **composes** the three mixins
 that implement the different phases of migration:
 
-- :class:`DiffMixin` (from ``diff_engine.py``): ORM vs DB comparison
+- :class:`DiffMixin` (from ``diff_engine.py``): desired vs current schema comparison
 - :class:`CommandBuilderMixin` (from ``command_builder.py``): SQL generation
 - :class:`ExecutorMixin` (from ``executor.py``): assembly and execution
 
@@ -17,11 +17,11 @@ SqlMigrator follows the **orchestrator** pattern: it does not directly
 implement comparison or SQL generation logic, but coordinates the
 components that do. Its responsibilities are:
 
-1. **Initialization**: creates the two extractors (ORM and DB) and
-   configures migration parameters (force, backup, etc.)
+1. **Initialization**: stores the database facade, snapshots the supplied
+   structure and configures migration parameters (force, backup, etc.)
 
-2. **Structure preparation**: invokes the extractors to produce the
-   two JSON representations (ORM and DB)
+2. **Structure preparation**: restores a working copy of the desired schema,
+   filters dialect capabilities and reads the current database structure
 
 3. **Diff computation**: delegates to DiffMixin to produce events
 
@@ -37,10 +37,11 @@ Complete migration flow
     SqlMigrator
         |
         +-- __init__()
-        |   +-- OrmExtractor(migrator=self, extensions=...)
+        |   +-- snapshot the caller's normalized structure
         |
         +-- prepareStructures()
-        |   +-- extractOrm() -> ormExtractor.get_json_struct()
+        |   +-- extractOrm() -> fresh copy of the supplied structure
+        |   +-- applyCapabilities() -> filter the working copy, record warnings
         |   +-- extractSql() -> db.adapter.reader.get_json_struct(dbname, schemas)
         |
         +-- prepareMigrationCommands()  [uses DiffMixin + CommandBuilderMixin]
@@ -56,19 +57,24 @@ Complete migration flow
 Configuration parameters
 --------------------------
 
-- **extensions**: list of PostgreSQL extensions to include in migration
-  (e.g. "uuid-ossp,pg_trgm"). Also auto-detected from ORM columns.
+- **structure**: normalized dictionary or JSON document describing the
+  desired schema, including extensions in ``root.extensions``. Producers
+  own extraction from application models.
+
+- **extensions**: retained as a legacy constructor parameter; storing this
+  list alone does not add extensions to the desired structure.
 
 - **ignore_constraint_name** (default True): ignores differences in
-  constraint and index names. Useful because the ORM generates hashed
+  constraint and index names. Useful because producers generate hashed
   names that may differ from manually created names in the DB.
 
-- **excludeReadOnly** (default True): excludes from migration packages
-  marked as readOnly (typically system or third-party packages).
+- **excludeReadOnly** (default True): excludes schemas declared read-only
+  by the database facade from introspection. Command generation always
+  skips entities in those schemas.
 
-- **removeDisabled** (default True): disables generation of removal
-  commands (DROP TABLE, DROP COLUMN, etc.). For safety, migration
-  never removes entities from the DB unless explicitly enabled.
+- **removeDisabled** (default True): skips removal events. Disabling this
+  flag enables the implemented removal handler, ``DROP COLUMN``; other
+  removal handlers preserve database-only entities.
 
 - **force** (default False): forces type conversions even on non-empty
   columns. Incompatible values become NULL.
@@ -85,7 +91,9 @@ Typical usage example::
     from asqueel_migration import SqlMigrator
 
     # Compute differences without applying them
-    migrator = SqlMigrator(app.db)
+    # db is a database facade; desired is normalized JSON or a dictionary.
+    # The caller owns db and closes its connections when finished.
+    migrator = SqlMigrator(db, structure=desired)
     sql = migrator.getChanges()
     print(sql)
 
@@ -93,7 +101,7 @@ Typical usage example::
     migrator.applyChanges()
 
     # With backup for type conversions
-    migrator = SqlMigrator(app.db, force=True, backup=True)
+    migrator = SqlMigrator(db, structure=desired, backup=True)
     migrator.applyChanges()
     report = migrator.verifyConversionBackups()
 """
@@ -111,28 +119,31 @@ from .structures import nested_defaultdict
 class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
     """Main SQL migration orchestrator.
 
-    Coordinates ORM and DB structure extraction, comparison,
+    Coordinates caller-supplied structures and database introspection, comparison,
     SQL command generation and execution.
 
     Inherits from mixins:
-    - :class:`DiffMixin`: ``diff`` property, ``dictDifferChanges()``,
-      ``getDiffBag()``
+    - :class:`DiffMixin`: ``diff`` property, ``dictDifferChanges()``
     - :class:`CommandBuilderMixin`: ``added_*``, ``changed_*``,
       ``removed_*`` handlers, SQL helpers
     - :class:`ExecutorMixin`: ``getChanges()``, ``applyChanges()``,
       ``verifyConversionBackups()``
 
     Args:
-        db: GnrSqlDb database object.
-        extensions: Comma-separated string of extensions (optional).
+        db: Database facade exposing an adapter and connection/schema settings.
+        extensions: Legacy comma-separated extension list. Desired extensions
+            must be supplied in the structure's ``root.extensions`` container.
         ignore_constraint_name: If True, ignores differences in constraint
             names (default True).
-        excludeReadOnly: If True, excludes readOnly packages (default True).
+        excludeReadOnly: If True, excludes read-only schemas from introspection
+            (default True). Commands for those schemas are always skipped.
         removeDisabled: If True, does not generate removal commands (default True).
         force: If True, forces type conversions on non-empty columns
             (default False).
         backup: If True, creates backups before conversions. Implies force
             (default False).
+        structure: Normalized dictionary or JSON document, validated and copied
+            when supplied. Otherwise assign ``ormStructure`` before preparation.
     """
 
     def __init__(self, db,
@@ -192,14 +203,14 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
 
         This is the method that orchestrates the complete flow:
 
-        1. Calls ``prepareStructures()`` to extract ORM and DB
+        1. Calls ``prepareStructures()`` to copy the desired schema and read the DB
         2. Initializes ``self.commands`` as a nested defaultdict
         3. Iterates over diff events (from DiffMixin)
         4. For each event, calls the corresponding handler
            (from CommandBuilderMixin) which populates ``self.commands``
 
         'removed' events are skipped if ``removeDisabled`` is True.
-        Entities in readOnly schemas are ignored.
+        Entities in read-only schemas are ignored.
         """
         self.prepareStructures()
         self.commands = nested_defaultdict()
@@ -216,14 +227,15 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
             handler(**kw)
 
     def prepareStructures(self):
-        """Prepare JSON structures from the ORM and the database.
+        """Prepare the desired working copy and read the database structure.
 
         Determines which schemas to inspect:
-        - ``application_schemas``: schemas of the application's packages
+        - ``application_schemas``: schemas managed by the application
         - ``readOnly_schemas``: schemas to exclude if excludeReadOnly is True
         - ``tenant_schemas``: multi-tenant schemas
 
-        Then invokes the two extractors in sequence.
+        Restores the supplied structure, filters unsupported capabilities and
+        introspects the selected schemas through the adapter's reader.
         """
         self.warnings = []
         self.application_schemas = self.db.getApplicationSchemas()

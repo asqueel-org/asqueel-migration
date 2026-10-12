@@ -24,7 +24,7 @@ class BaseWriter(ABC):
 
     # Dizionario delle conversioni di tipo supportate.
     # Chiave: (old_dtype, new_dtype), Valore: None/True (semplice) o str (espressione USING).
-    TYPE_CONVERSIONS = {}
+    TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
 
     # Capability flags declared by each dialect writer. Representation
     # capabilities gate what the migrator keeps in the ORM structure before
@@ -38,7 +38,7 @@ class BaseWriter(ABC):
     #     'index_with_options'
     #   DDL operations: 'alter_column_type', 'drop_constraint',
     #     'add_constraint'
-    CAPABILITIES = frozenset()
+    CAPABILITIES: frozenset[str] = frozenset()
 
     @staticmethod
     def quote_identifier(name: str) -> str:

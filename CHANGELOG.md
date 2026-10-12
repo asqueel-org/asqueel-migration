@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1 — 2026-10-12
+
+- Use the connection's database name for creation even when the desired
+  structure carries a different model label.
+- Reject missing service inputs before database access, and report malformed
+  containers as validation errors with field paths, with or without the
+  optional JSON Schema validator.
+- Expand contract coverage for reviewed plans, input ownership, repeatable
+  preparation, unsupported operations, removals and connection cleanup.
+- Refresh internal architecture and usage documentation for caller-supplied
+  schemas and the extracted server application. Annotate conversion tables and
+  capabilities, and include the development typing dependencies needed for a
+  clean mypy run without suppressing import diagnostics.
+
 ## 0.2.0 — 2026-10-12
 
 - Move the Kajenn HTTP/MCP application to the separate
@@ -13,10 +27,6 @@
 - Add transport-independent `plan_migration` and `apply_migration`, with
   reviewed-plan validation, unsupported-operation rejection and convergence
   verification. Plan identifiers detect drift; they do not lock external DDL.
-- Use the connection's database name for creation even when the desired
-  structure carries a different model label. Reject missing service inputs
-  before database access, and report malformed containers as validation errors
-  with field paths, with or without the optional JSON Schema validator.
 
 - Quote identifiers consistently in migration DDL, introspection and conversion
   backup commands, including names containing double quotes. Primary-key columns,

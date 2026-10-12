@@ -210,6 +210,21 @@ The legacy XML helpers in `editor_service` remain transport-independent.
 | `writers/` | Per-dialect DDL generation |
 | `adapters/` | Concrete `Database`/adapter pairs per dialect |
 
+## Development checks
+
+Install the development dependencies before running static checks:
+
+```bash
+python -m pip install -e ".[dev,postgresql]"
+python -m ruff check src tests
+python -m mypy src/asqueel_migration
+```
+
+The `dev` extra includes JSON Schema and PyMySQL stubs, and the pymssql driver
+with its bundled Python 3 stubs. These are development dependencies; using the
+migrator does not require installing every database driver. Mypy reads the
+installed `dictdiffer` source because it has no published stubs.
+
 ## Documentation
 
 Full documentation on

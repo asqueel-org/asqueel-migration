@@ -38,14 +38,16 @@ carrying the full list of problems.
 import copy
 import json
 from importlib.resources import files
+from types import ModuleType
 
+from .exceptions import SqlValidationError
+from .structures import COL_JSON_KEYS, DTYPE_CODES, FORMAT_VERSION, hashed_name
+
+jsonschema: ModuleType | None
 try:
     import jsonschema
 except ImportError:  # formal schema validation is an optional extra
     jsonschema = None
-
-from .exceptions import SqlValidationError
-from .structures import COL_JSON_KEYS, DTYPE_CODES, FORMAT_VERSION, hashed_name
 
 ROOT_CONTAINERS = ('schemas', 'extensions', 'event_triggers')
 TABLE_CONTAINERS = ('columns', 'relations', 'constraints', 'indexes')

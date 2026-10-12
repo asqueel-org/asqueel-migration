@@ -55,7 +55,7 @@ class MssqlWriter(BaseWriter):
 
     # No column-type conversions: T-SQL ALTER COLUMN needs the full type and
     # has no USING clause, so conversions go through drop/add at a higher level.
-    TYPE_CONVERSIONS = {}
+    TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
 
     # SQL Server supports FKs, table constraints, filtered indexes and the
     # DDL operations; it lacks the representation features stripped by the
