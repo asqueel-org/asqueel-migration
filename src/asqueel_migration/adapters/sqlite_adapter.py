@@ -64,7 +64,7 @@ class SqliteAdapter(BaseAdapter):
             connection.execute('PRAGMA foreign_keys = ON')
             for schema_name, path in self.database.schema_files().items():
                 connection.execute(
-                    f'ATTACH DATABASE \'{path}\' AS "{schema_name}"'
+                    f'ATTACH DATABASE ? AS {self.writer.quote_identifier(schema_name)}', (path,)
                 )
             return connection
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as error:
@@ -76,14 +76,16 @@ class SqliteAdapter(BaseAdapter):
         connection = sqlite3.connect(dbname)
         connection.execute('PRAGMA foreign_keys = ON')
         for schema_name, path in self.database.schema_files().items():
-            connection.execute(f'ATTACH DATABASE \'{path}\' AS "{schema_name}"')
+            connection.execute(
+                f'ATTACH DATABASE ? AS {self.writer.quote_identifier(schema_name)}', (path,)
+            )
         return connection
 
     # Matches the shared "ALTER TABLE "s"."t" ADD CONSTRAINT "n" UNIQUE (cols)"
     # statement so it can be rewritten as a UNIQUE INDEX (see execute).
     _ADD_UNIQUE_RE = re.compile(
-        r'^ALTER\s+TABLE\s+"(?P<schema>[^"]+)"\."(?P<table>[^"]+)"\s+'
-        r'ADD\s+CONSTRAINT\s+"(?P<name>[^"]+)"\s+UNIQUE\s*\((?P<cols>.+)\)$',
+        r'^ALTER\s+TABLE\s+"(?P<schema>(?:[^"]|"")+)"\."(?P<table>(?:[^"]|"")+)"\s+'
+        r'ADD\s+CONSTRAINT\s+"(?P<name>(?:[^"]|"")+)"\s+UNIQUE\s*\((?P<cols>.+)\)$',
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -170,7 +172,8 @@ class SqliteAdapter(BaseAdapter):
         creation is resolved here from ``self.database``.
         """
         path = self.database.schema_files()[schema_name]
-        return f'ATTACH DATABASE \'{path}\' AS "{schema_name}";'
+        path_literal = "'" + path.replace("'", "''") + "'"
+        return f'ATTACH DATABASE {path_literal} AS {self.writer.quote_identifier(schema_name)};'
 
     def columnSqlType(self, dtype, size=None):
         return self.writer.column_sql_type(dtype, size=size)
@@ -184,7 +187,7 @@ class SqliteAdapter(BaseAdapter):
         )
 
     def adaptSqlName(self, name):
-        return f'"{name}"'
+        return self.writer.quote_identifier(name)
 
     def struct_constraint_sql(self, constraint_name, constraint_type,
                               columns=None, check_clause=None, **kwargs):

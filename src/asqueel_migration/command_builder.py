@@ -190,7 +190,10 @@ class CommandBuilderMixin:
         for col in item['columns'].values():
             substatements.append(self.columnSql(col).strip())
         if item["attributes"]["pkeys"]:
-            substatements.append(f'PRIMARY KEY ({item["attributes"]["pkeys"]})')
+            substatements.append('PRIMARY KEY (' + ','.join(
+                self.db.adapter.adaptSqlName(col)
+                for col in item['attributes']['pkeys'].split(',')
+            ) + ')')
 
         # Inline constraints in CREATE TABLE (e.g. multi-column UNIQUE)
         for const_item in item['constraints'].values():
@@ -590,7 +593,7 @@ class CommandBuilderMixin:
             )
             if oldvalue == 'O':
                 # Bytea requires special encoding
-                conversion_expression = f'encode("{column_name}", \'hex\')'
+                conversion_expression = f'encode({self.db.adapter.adaptSqlName(column_name)}, \'hex\')'
                 columns_dict[column_name]['command'] = (
                     self.db.adapter.struct_alter_column_with_conversion_sql(
                         column_name=column_name,
@@ -624,7 +627,7 @@ class CommandBuilderMixin:
                 # Empty column: DROP + ADD (complete rebuild)
                 entity_name = item['entity_name']
                 table_dict['columns'][f'rem_{entity_name}']['command'] = (
-                    f'DROP COLUMN "{entity_name}"'
+                    f'DROP COLUMN {self.db.adapter.adaptSqlName(entity_name)}'
                 )
                 self.added_column(item)
                 item['_rebuilt'] = True
@@ -674,9 +677,9 @@ class CommandBuilderMixin:
         if isinstance(conversion_def, str):
             schema_name = item['schema_name']
             table_name = item['table_name']
-            full_table = f'"{schema_name}"."{table_name}"'
+            full_table = f'{self.db.adapter.adaptSqlName(schema_name)}.{self.db.adapter.adaptSqlName(table_name)}'
             conversion_expression = conversion_def.format(
-                column_name=f'"{column_name}"'
+                column_name=self.db.adapter.adaptSqlName(column_name)
             )
 
             # Without --force: exception if column is not empty
@@ -709,11 +712,11 @@ class CommandBuilderMixin:
                     table_dict['pre_commands'] = []
                 table_dict['pre_commands'].append(
                     f'ALTER TABLE {full_table} ADD COLUMN '
-                    f'"{backup_column_name}" text'
+                    f'{self.db.adapter.adaptSqlName(backup_column_name)} text'
                 )
                 table_dict['pre_commands'].append(
                     f'UPDATE {full_table} SET '
-                    f'"{backup_column_name}" = "{column_name}"::text'
+                    f'{self.db.adapter.adaptSqlName(backup_column_name)} = {self.db.adapter.adaptSqlName(column_name)}::text'
                 )
 
             # Conversion command (with --force or --backup)
@@ -791,7 +794,8 @@ class CommandBuilderMixin:
                 relattr['constraint_name'] = oldvalue
             else:
                 relations_dict[f'rem_{entity_name}']['command'] = (
-                    f"RENAME CONSTRAINT {oldvalue} TO {newvalue};"
+                    f"RENAME CONSTRAINT {self.db.adapter.adaptSqlName(oldvalue)} "
+                    f"TO {self.db.adapter.adaptSqlName(newvalue)};"
                 )
             return
 
@@ -846,7 +850,8 @@ class CommandBuilderMixin:
                 constraint_attr['constraint_name'] = oldvalue
             else:
                 constraints_dict[f'rem_{entity_name}']['command'] = (
-                    f"RENAME CONSTRAINT {oldvalue} TO {newvalue};"
+                    f"RENAME CONSTRAINT {self.db.adapter.adaptSqlName(oldvalue)} "
+                    f"TO {self.db.adapter.adaptSqlName(newvalue)};"
                 )
             return
 
@@ -865,7 +870,7 @@ class CommandBuilderMixin:
             check_clause=item['attributes'].get('check_clause')
         )
         constraints_dict[f'drop_{entity_name}']['command'] = (
-            f"DROP CONSTRAINT {constraint_attr['constraint_name']}"
+            f"DROP CONSTRAINT {self.db.adapter.adaptSqlName(constraint_attr['constraint_name'])}"
         )
         constraints_dict[f'add_{entity_name}']['command'] = f"ADD {add_sql}"
 
@@ -892,7 +897,7 @@ class CommandBuilderMixin:
         """
         table_dict = self.schema_tables(item['schema_name'])[item['table_name']]
         entity_name = item['entity_name']
-        table_dict['columns'][entity_name]['command'] = f'DROP COLUMN "{entity_name}"'
+        table_dict['columns'][entity_name]['command'] = f'DROP COLUMN {self.db.adapter.adaptSqlName(entity_name)}'
 
     def removed_index(self, item=None, **kwargs):
         """Handler for removed indexes. No-op for safety."""

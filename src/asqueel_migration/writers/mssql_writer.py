@@ -119,7 +119,7 @@ class MssqlWriter(BaseWriter):
             str: Column definition (e.g. ``"name" nvarchar(100) NOT NULL``).
         """
         sql_type = self.column_sql_type(dtype, size)
-        parts = [f'"{column_name}" {sql_type}']
+        parts = [f'{self.quote_identifier(column_name)} {sql_type}']
 
         if generated_expression:
             parts.append(f'AS ({generated_expression})')
@@ -135,11 +135,11 @@ class MssqlWriter(BaseWriter):
 
     def table_fullname(self, schema_name, table_name):
         """Return the quoted qualified table name (``"schema"."table"``)."""
-        return f'"{schema_name}"."{table_name}"'
+        return f'{self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}'
 
     def create_db_sql(self, dbname, encoding='UNICODE'):
         """Generate CREATE DATABASE (encoding ignored: default collation)."""
-        return f'CREATE DATABASE "{dbname}";'
+        return f'CREATE DATABASE {self.quote_identifier(dbname)};'
 
     def create_schema_sql(self, schema_name):
         """Generate CREATE SCHEMA.
@@ -147,11 +147,11 @@ class MssqlWriter(BaseWriter):
         T-SQL requires CREATE SCHEMA alone in its batch; the adapter's
         statement-splitting execute guarantees the isolation.
         """
-        return f'CREATE SCHEMA "{schema_name}";'
+        return f'CREATE SCHEMA {self.quote_identifier(schema_name)};'
 
     def alter_column_sql(self, column_name, new_sql_type):
         """Generate ALTER COLUMN with the full type (no USING)."""
-        return f'ALTER COLUMN "{column_name}" {new_sql_type}'
+        return f'ALTER COLUMN {self.quote_identifier(column_name)} {new_sql_type}'
 
     def alter_column_with_conversion_sql(self, column_name, new_sql_type,
                                          conversion_expression):
@@ -193,15 +193,15 @@ class MssqlWriter(BaseWriter):
             str: SQL constraint definition.
         """
         if constraint_type == "UNIQUE":
-            columns_str = ', '.join(f'"{col}"' for col in columns)
-            return f'CONSTRAINT "{constraint_name}" UNIQUE ({columns_str})'
+            columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} UNIQUE ({columns_str})'
         elif constraint_type == "CHECK":
-            return f'CONSTRAINT "{constraint_name}" CHECK ({check_clause})'
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} CHECK ({check_clause})'
         raise ValueError(f"Unsupported constraint type: {constraint_type}")
 
     def drop_constraint_sql(self, constraint_name):
         """Generate DROP CONSTRAINT."""
-        return f'DROP CONSTRAINT "{constraint_name}"'
+        return f'DROP CONSTRAINT {self.quote_identifier(constraint_name)}'
 
     def foreign_key_sql(self, fk_name, columns, related_table, related_schema,
                         related_columns, on_delete=None, on_update=None,
@@ -225,13 +225,13 @@ class MssqlWriter(BaseWriter):
         Returns:
             str: Full FK definition.
         """
-        columns_str = ', '.join(f'"{col}"' for col in columns)
-        related_columns_str = ', '.join(f'"{col}"' for col in related_columns)
+        columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+        related_columns_str = ', '.join(self.quote_identifier(col) for col in related_columns)
         on_delete_str = f" ON DELETE {self._fk_action(on_delete)}" if on_delete else ""
         on_update_str = f" ON UPDATE {self._fk_action(on_update)}" if on_update else ""
         return (
-            f'CONSTRAINT "{fk_name}" FOREIGN KEY ({columns_str}) '
-            f'REFERENCES "{related_schema}"."{related_table}" '
+            f'CONSTRAINT {self.quote_identifier(fk_name)} FOREIGN KEY ({columns_str}) '
+            f'REFERENCES {self.quote_identifier(related_schema)}.{self.quote_identifier(related_table)} '
             f'({related_columns_str})'
             f'{on_delete_str}{on_update_str}'
         )
@@ -294,14 +294,16 @@ class MssqlWriter(BaseWriter):
         ``<table>_pkey`` so drop/add round-trips are stable.
         """
         full_table = self.table_fullname(schema_name, table_name)
-        return f'ALTER TABLE {full_table} DROP CONSTRAINT "{table_name}_pkey";'
+        constraint = self.quote_identifier(table_name + '_pkey')
+        return f'ALTER TABLE {full_table} DROP CONSTRAINT {constraint};'
 
     def add_table_pkey_sql(self, schema_name, table_name, pkeys):
         """Generate ADD PRIMARY KEY."""
         full_table = self.table_fullname(schema_name, table_name)
-        columns = ', '.join(f'"{col.strip()}"' for col in pkeys.split(','))
+        columns = ', '.join(self.quote_identifier(col.strip()) for col in pkeys.split(','))
+        constraint = self.quote_identifier(table_name + '_pkey')
         return (
-            f'ALTER TABLE {full_table} ADD CONSTRAINT "{table_name}_pkey" '
+            f'ALTER TABLE {full_table} ADD CONSTRAINT {constraint} '
             f'PRIMARY KEY ({columns});'
         )
 

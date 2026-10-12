@@ -220,7 +220,7 @@ class MssqlReader(BaseReader):
         try:
             with self._conn.cursor() as cur:
                 cur.execute('SET QUOTED_IDENTIFIER ON')
-                cur.execute(f'USE [{self.dbname()}]')
+                cur.execute(f'USE {self.quote_identifier(self.dbname())}')
         except pymssql.OperationalError as error:
             self.close()
             if 'does not exist' in str(error).lower():
@@ -446,8 +446,8 @@ class MssqlReader(BaseReader):
         """Return True if the column contains only NULL values."""
         sql = (
             f'SELECT CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END '
-            f'FROM "{schema_name}"."{table_name}" '
-            f'WHERE "{column_name}" IS NOT NULL'
+            f'FROM {self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)} '
+            f'WHERE {self.quote_identifier(column_name)} IS NOT NULL'
         )
         try:
             self.connect()

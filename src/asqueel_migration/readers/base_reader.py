@@ -14,6 +14,7 @@ Concrete readers implement only the per-dialect ``connect``/``close``,
 
 from abc import ABC, abstractmethod
 
+from asqueel_migration._sql import quote_identifier
 from asqueel_migration.exceptions import NonExistingDbException
 from asqueel_migration.structures import (
     COL_JSON_KEYS,
@@ -45,6 +46,7 @@ class BaseReader(ABC):
     """
 
     col_json_keys = COL_JSON_KEYS
+    quote_identifier = staticmethod(quote_identifier)
 
     def __init__(self, connection_params=None):
         self.connection_params = connection_params

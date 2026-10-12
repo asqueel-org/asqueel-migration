@@ -307,7 +307,7 @@ class TestMigrationExtension(BaseMigrationTest):
         self.migrator.prepareMigrationCommands()
         changes = self.migrator.getChanges()
         assert 'DROP EXTENSION' not in changes
-        assert 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' in changes
+        assert 'CREATE EXTENSION IF NOT EXISTS "pg_trgm";' in changes
         self.migrator.applyChanges()
 
     def test_ext_02_extension_not_recreated(self):

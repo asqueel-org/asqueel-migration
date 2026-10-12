@@ -58,6 +58,7 @@ by comparing the converted column with the backup:
   report is generated for the user
 """
 
+from ._sql import quote_identifier
 from .exceptions import MigrationExecutionError
 
 
@@ -168,7 +169,7 @@ class ExecutorMixin:
         """
         command_list = []
         relation_command_list = []
-        alter_table_command = f'ALTER TABLE "{schema_name}"."{table_name}"'
+        alter_table_command = f'ALTER TABLE {quote_identifier(schema_name)}.{quote_identifier(table_name)}'
 
         # Pre-commands: column backups before type conversions
         pre_commands = tbl_item.get('pre_commands', [])
@@ -316,12 +317,12 @@ class ExecutorMixin:
             old_dtype = backup_info['old_dtype']
             new_dtype = backup_info['new_dtype']
 
-            full_table = f'"{schema}"."{table}"'
+            full_table = f'{quote_identifier(schema)}.{quote_identifier(table)}'
 
             # Count lost values: backup non-NULL but converted column NULL
             check_sql = f'''
                 SELECT COUNT(*) FROM {full_table}
-                WHERE "{backup_column}" IS NOT NULL AND "{column}" IS NULL
+                WHERE {quote_identifier(backup_column)} IS NOT NULL AND {quote_identifier(column)} IS NULL
             '''
 
             try:
@@ -338,14 +339,14 @@ class ExecutorMixin:
                         'message': (
                             f'WARNING: {lost_count} value(s) could not be '
                             f'converted. Original data preserved in column '
-                            f'"{backup_column}".'
+                            f'{quote_identifier(backup_column)}.'
                         )
                     }
                 else:
                     # No loss: remove backup
                     drop_sql = (
                         f'ALTER TABLE {full_table} '
-                        f'DROP COLUMN "{backup_column}"'
+                        f'DROP COLUMN {quote_identifier(backup_column)}'
                     )
                     self.db.adapter.execute(drop_sql, autoCommit=True)
 
@@ -356,7 +357,7 @@ class ExecutorMixin:
                     'backup_column': backup_column,
                     'message': (
                         f'Could not verify conversion. Backup column '
-                        f'"{backup_column}" preserved.'
+                        f'{quote_identifier(backup_column)} preserved.'
                     )
                 }
 

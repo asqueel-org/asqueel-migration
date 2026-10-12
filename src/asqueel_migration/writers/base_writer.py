@@ -12,6 +12,8 @@ target (definizioni di colonne, constraint, indici, ALTER TABLE, ecc.).
 
 from abc import ABC, abstractmethod
 
+from asqueel_migration._sql import quote_identifier
+
 
 class BaseWriter(ABC):
     """Interfaccia base per i writer di generazione SQL.
@@ -46,7 +48,7 @@ class BaseWriter(ABC):
         and SQL Server enables QUOTED_IDENTIFIER. Embedded double quotes are
         doubled; backticks and brackets are ordinary characters in this mode.
         """
-        return '"' + name.replace('"', '""') + '"'
+        return quote_identifier(name)
 
     def drop_index_sql(self, schema_name, table_name, index_name):
         """Drop an index in a schema namespace (PostgreSQL and SQLite)."""

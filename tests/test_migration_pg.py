@@ -82,7 +82,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('country', size='2')
         tbl.column('vat_number', size=':30')
         tbl.compositeColumn('international_vat', columns='country,vat_number', unique=True)
-        check_value = 'CREATE TABLE "alfa"."alfa_restaurant"(\n "id" serial8 NOT NULL,\n "name" character varying(45),\n "country" character(2),\n "vat_number" character varying(30),\n PRIMARY KEY (id),\n CONSTRAINT "cst_703bf76b" UNIQUE ("country", "vat_number")\n);'
+        check_value = 'CREATE TABLE "alfa"."alfa_restaurant"(\n "id" serial8 NOT NULL,\n "name" character varying(45),\n "country" character(2),\n "vat_number" character varying(30),\n PRIMARY KEY ("id"),\n CONSTRAINT "cst_703bf76b" UNIQUE ("country", "vat_number")\n);'
         self.checkChanges(check_value)
 
     def test_04d_add_unique_column(self):
@@ -119,14 +119,14 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('ingredient', pkey='id')
         tbl.column('id', dtype='serial')
         tbl.column('description')
-        check_value = 'CREATE TABLE "alfa"."alfa_ingredient" ("id" serial8 NOT NULL, "description" text, PRIMARY KEY (id));'
+        check_value = 'CREATE TABLE "alfa"."alfa_ingredient" ("id" serial8 NOT NULL, "description" text, PRIMARY KEY ("id"));'
         self.checkChanges(check_value)
 
     def test_05b_add_primary_key(self):
         """Tests adding a primary key to an existing table."""
         pkg = self.src.package('alfa')
         pkg.table('recipe', pkey='code')  # Primary key defined as a table attribute
-        check_value = 'ALTER TABLE "alfa"."alfa_recipe" DROP CONSTRAINT IF EXISTS alfa_recipe_pkey;\nALTER TABLE "alfa"."alfa_recipe" ADD PRIMARY KEY (code);'
+        check_value = 'ALTER TABLE "alfa"."alfa_recipe" DROP CONSTRAINT IF EXISTS "alfa_recipe_pkey";\nALTER TABLE "alfa"."alfa_recipe" ADD PRIMARY KEY ("code");'
         self.checkChanges(check_value)
 
     def test_05c_create_table_withCompositePkey(self):
@@ -137,7 +137,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.compositeColumn('composite_key', columns='recipe_code,recipe_line')
         tbl.column('description')
         tbl.column('ingredient_id', dtype='L')
-        check_value = 'CREATE TABLE "alfa"."alfa_recipe_row" ("recipe_code" character varying(12) NOT NULL , "recipe_line" bigint NOT NULL , "description" text , "ingredient_id" bigint , PRIMARY KEY (recipe_code,recipe_line));'
+        check_value = 'CREATE TABLE "alfa"."alfa_recipe_row" ("recipe_code" character varying(12) NOT NULL , "recipe_line" bigint NOT NULL , "description" text , "ingredient_id" bigint , PRIMARY KEY ("recipe_code","recipe_line"));'
         self.checkChanges(check_value)
 
     def test_05c1_composite_pkey_with_unique_column(self):
@@ -152,7 +152,7 @@ class TestSqlMigration(BaseMigrationTest):
                        ' "field_a" character(5) NOT NULL,\n'
                        ' "field_b" character(5) NOT NULL,\n'
                        ' "field_c" character(5),\n'
-                       ' PRIMARY KEY (field_a,field_b)\n'
+                       ' PRIMARY KEY ("field_a","field_b")\n'
                        ');\n'
                        'ALTER TABLE "alfa"."alfa_test_composite_unique"\n'
                        'ADD CONSTRAINT "cst_f65e94e4" UNIQUE ("field_b");\n'
@@ -166,7 +166,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('company', pkey='code')
         tbl.column('code', size=':30', unique=True)
         tbl.column('description')
-        check_value = 'CREATE TABLE "alfa"."alfa_company"(\n "code" character varying(30) NOT NULL,\n "description" text,\n PRIMARY KEY (code)\n);'
+        check_value = 'CREATE TABLE "alfa"."alfa_company"(\n "code" character varying(30) NOT NULL,\n "description" text,\n PRIMARY KEY ("code")\n);'
         self.checkChanges(check_value)
 
     def test_05e_create_table_with_pkey_and_unique_col(self):
@@ -176,7 +176,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('code', size=':30', unique=True)
         tbl.column('description')
         tbl.column('uniquecol', unique=True, size='10')
-        check_value = 'CREATE TABLE "alfa"."alfa_test_table_with_uniquecol"(\n "code" character varying(30) NOT NULL,\n "description" text,\n "uniquecol" character(10),\n PRIMARY KEY (code)\n);\nALTER TABLE "alfa"."alfa_test_table_with_uniquecol"\nADD CONSTRAINT "cst_9bbd2120" UNIQUE ("uniquecol");'
+        check_value = 'CREATE TABLE "alfa"."alfa_test_table_with_uniquecol"(\n "code" character varying(30) NOT NULL,\n "description" text,\n "uniquecol" character(10),\n PRIMARY KEY ("code")\n);\nALTER TABLE "alfa"."alfa_test_table_with_uniquecol"\nADD CONSTRAINT "cst_9bbd2120" UNIQUE ("uniquecol");'
         self.checkChanges(check_value)
 
     def test_06_prepare_table(self):
@@ -244,7 +244,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('id', dtype='serial')
         tbl.column('description')
         tbl.column('recipe_code').relation('alfa.recipe.code', mode='foreignkey')
-        check_value = 'CREATE TABLE "alfa"."alfa_product"(\n "id" serial8 NOT NULL,\n "description" text,\n "recipe_code" text,\n PRIMARY KEY (id)\n);\nCREATE INDEX "idx_78fd5e36" ON "alfa"."alfa_product" USING btree ("recipe_code");\nALTER TABLE "alfa"."alfa_product"\n ADD CONSTRAINT "fk_ff154564" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;'
+        check_value = 'CREATE TABLE "alfa"."alfa_product"(\n "id" serial8 NOT NULL,\n "description" text,\n "recipe_code" text,\n PRIMARY KEY ("id")\n);\nCREATE INDEX "idx_78fd5e36" ON "alfa"."alfa_product" USING btree ("recipe_code");\nALTER TABLE "alfa"."alfa_product"\n ADD CONSTRAINT "fk_ff154564" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;'
         self.checkChanges(check_value)
 
     def test_07b_create_table_with_relation_to_pk_multi(self):
@@ -259,7 +259,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.compositeColumn('recipe_row_reference', columns='recipe_code,recipe_line').relation(
             'alfa.recipe_row.composite_key', mode='foreignkey'
         )
-        check_changes = 'CREATE TABLE "alfa"."alfa_recipe_row_alternative"(\n "id" serial8 NOT NULL,\n "description" text,\n "vegan" boolean,\n "gluten_free" boolean,\n "recipe_code" character varying(12),\n "recipe_line" bigint,\n PRIMARY KEY (id)\n);\nCREATE INDEX "idx_17fca263" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code");\nCREATE INDEX "idx_bd86c8b3" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_a2e10c8f" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_b03ef3c2" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
+        check_changes = 'CREATE TABLE "alfa"."alfa_recipe_row_alternative"(\n "id" serial8 NOT NULL,\n "description" text,\n "vegan" boolean,\n "gluten_free" boolean,\n "recipe_code" character varying(12),\n "recipe_line" bigint,\n PRIMARY KEY ("id")\n);\nCREATE INDEX "idx_17fca263" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code");\nCREATE INDEX "idx_bd86c8b3" ON "alfa"."alfa_recipe_row_alternative" USING btree ("recipe_code", "recipe_line");\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_a2e10c8f" FOREIGN KEY ("recipe_code") REFERENCES "alfa"."alfa_recipe" ("code") ON UPDATE CASCADE;\nALTER TABLE "alfa"."alfa_recipe_row_alternative"\n ADD CONSTRAINT "fk_b03ef3c2" FOREIGN KEY ("recipe_code", "recipe_line") REFERENCES "alfa"."alfa_recipe_row" ("recipe_code", "recipe_line") ON UPDATE CASCADE;'
         self.checkChanges(check_changes)
 
     def test_08a_modify_column_type(self):
@@ -324,7 +324,7 @@ class TestSqlMigration(BaseMigrationTest):
         self.checkChanges(apply_only=True)
         tbl.attributes.update(pkey='id')
         tbl.column('id', size='22')
-        self.checkChanges('CREATE TABLE "alfa"."alfa_my_empty_table"(\n "id" character(22) NOT NULL,\n PRIMARY KEY (id)\n);')
+        self.checkChanges('CREATE TABLE "alfa"."alfa_my_empty_table"(\n "id" character(22) NOT NULL,\n PRIMARY KEY ("id")\n);')
 
     def test_11_varchar_min_max(self):
         pkg = self.src.package('alfa')
@@ -333,7 +333,7 @@ class TestSqlMigration(BaseMigrationTest):
 
         # see #324 - varchar columns with min/max only use the max
         tbl.column('code', dtype='A', size="5:18")
-        check_value = 'CREATE TABLE "alfa"."alfa_text_test_table"("id" serial8 NOT NULL, "code" character varying(18), PRIMARY KEY(id));'
+        check_value = 'CREATE TABLE "alfa"."alfa_text_test_table"("id" serial8 NOT NULL, "code" character varying(18), PRIMARY KEY ("id"));'
         self.checkChanges(check_value)
 
     def test_12a_simple_text_conversion(self):
@@ -342,7 +342,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('type_conv_test', pkey='id')
         tbl.column('id', dtype='serial')
         tbl.column('text_col')  # Text column (no size = text)
-        check_value = 'CREATE TABLE "alfa"."alfa_type_conv_test"("id" serial8 NOT NULL, "text_col" text, PRIMARY KEY(id));'
+        check_value = 'CREATE TABLE "alfa"."alfa_type_conv_test"("id" serial8 NOT NULL, "text_col" text, PRIMARY KEY ("id"));'
         self.checkChanges(check_value)
 
         # Now change text to varchar (simple conversion)
@@ -475,7 +475,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl = pkg.table('to_text_test', pkey='id')
         tbl.column('id', dtype='serial')
         tbl.column('int_col', dtype='I')
-        self.checkChanges('CREATE TABLE "alfa"."alfa_to_text_test"("id" serial8 NOT NULL, "int_col" integer, PRIMARY KEY(id));', apply_only=True)
+        self.checkChanges('CREATE TABLE "alfa"."alfa_to_text_test"("id" serial8 NOT NULL, "int_col" integer, PRIMARY KEY ("id"));', apply_only=True)
 
         tbl.column('int_col', dtype='T')
         check_value = 'ALTER TABLE "alfa"."alfa_to_text_test" \n ALTER COLUMN "int_col" TYPE text;'
@@ -551,7 +551,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('filename', dtype='A', size=':40')
         check_value = ('CREATE TABLE "alfa"."alfa_upgrade_filename_test"('
                        '"id" serial8 NOT NULL, "filename" character varying(40), '
-                       'PRIMARY KEY(id));')
+                       'PRIMARY KEY ("id"));')
         self.checkChanges(check_value)
 
         # Widen from :40 to :255, exactly the change applied to upgrade.py for #1019
@@ -575,7 +575,7 @@ class TestSqlMigration(BaseMigrationTest):
         tbl.column('codekey', dtype='A', size=':80')
         check_value = ('CREATE TABLE "alfa"."alfa_upgrade_codekey_test"('
                        '"codekey" character varying(80)NOT NULL, '
-                       'PRIMARY KEY(codekey));')
+                       'PRIMARY KEY ("codekey"));')
         self.checkChanges(check_value)
 
         pkg = self.src.package('alfa')
