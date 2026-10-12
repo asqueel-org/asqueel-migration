@@ -25,8 +25,8 @@ execution.
 
 - **Four dialects**: PostgreSQL (primary), SQLite, MySQL, MSSQL — one
   reader/writer/adapter trio per dialect, capability-gated.
-- **Two equivalent external formats**: human JSON and XSD-validated
-  XML; the same model in either compiles to the identical internal
+- **Two equivalent external formats**: human JSON and XML with a packaged
+  XSD; the same model in either compiles to the identical internal
   structure.
 - **Deterministic entity matching**: FK/UNIQUE/index names are
   structural hashes computed from schema + table + columns, so
@@ -91,10 +91,11 @@ Three input formats, from the friendliest to the most technical:
 
 1. **Human JSON** — readable JSON with names and lists, compiled by
    `JsonStructureProducer` (above).
-2. **XML** — the same information validated by the packaged XSD
+2. **XML** — the same information described by the packaged XSD
    (`sql_model-1.0.xsd`), ideal for editors and GUIs; compiled by
    `XmlStructureProducer`. The inverse `struct_to_xml()` turns an
-   introspected database back into editable XML.
+   introspected database back into editable XML. The producer parses XML;
+   callers that need XSD validation perform it separately.
 3. **Normalized JSON** — the internal contract, built directly with
    the `new_*_item` factories (the route an ORM extractor takes).
 
