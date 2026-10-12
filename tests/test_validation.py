@@ -151,4 +151,5 @@ class TestFormatVersionEnvelope:
         migrator.ormStructure = structure
         migrator.extractOrm()
         assert 'format_version' not in migrator.ormStructure
-        assert migrator.ormStructure['root'] is structure['root']
+        assert migrator.ormStructure['root'] == structure['root']
+        assert migrator.ormStructure['root'] is not structure['root']

@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-12
+
+- Move the Kajenn HTTP/MCP application to the separate
+  `asqueel-dbmanager` distribution. The `app` extra and
+  `asqueel_migration.app.EditorApp` are removed; Python migration and XML
+  service operations remain in this package.
+- Accept normalized JSON documents or dictionaries as `SqlMigrator(...,
+  structure=...)`; isolate caller data and repeat dialect filtering from an
+  independent source snapshot. Legacy `ormStructure` assignment also copies
+  input; changing its working dictionary does not change the source snapshot.
+- Add transport-independent `plan_migration` and `apply_migration`, with
+  reviewed-plan validation, unsupported-operation rejection and convergence
+  verification. Plan identifiers detect drift; they do not lock external DDL.
 
 - Quote identifiers consistently in migration DDL, introspection and conversion
   backup commands, including names containing double quotes. Primary-key columns,

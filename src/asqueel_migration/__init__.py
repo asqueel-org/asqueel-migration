@@ -36,6 +36,12 @@ from asqueel_migration.adapters import (
 from asqueel_migration.exceptions import MigrationExecutionError
 from asqueel_migration.json_producer import JsonStructureProducer
 from asqueel_migration.migrator import SqlMigrator
+from asqueel_migration.service import (
+    StaleMigrationPlan,
+    UnsupportedMigration,
+    apply_migration,
+    plan_migration,
+)
 from asqueel_migration.structures import (
     FORMAT_VERSION,
     new_column_item,
@@ -51,7 +57,7 @@ from asqueel_migration.structures import (
 from asqueel_migration.validation import StructureValidator
 from asqueel_migration.xml_producer import XmlStructureProducer, struct_to_xml
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 __all__ = [
     "FORMAT_VERSION",
@@ -66,6 +72,10 @@ __all__ = [
     "SqliteAdapter",
     "SqliteDatabase",
     "SqlMigrator",
+    "StaleMigrationPlan",
+    "UnsupportedMigration",
+    "apply_migration",
+    "plan_migration",
     "StructureValidator",
     "XmlStructureProducer",
     "new_column_item",

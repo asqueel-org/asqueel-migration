@@ -34,8 +34,11 @@ def introspect_to_xml(
     form — the entry point of the DB → XML → edit → migrate round-trip.
     """
     db = PgDatabase(connection_params, application_schemas=schemas)
-    structure = db.adapter.reader.get_json_struct(db.get_dbname(), schemas=schemas)
-    return cast(str, struct_to_xml(structure))
+    try:
+        structure = db.adapter.reader.get_json_struct(db.get_dbname(), schemas=schemas)
+        return cast(str, struct_to_xml(structure))
+    finally:
+        db.closeConnection()
 
 
 def migrate_from_xml(
@@ -54,12 +57,15 @@ def migrate_from_xml(
     db = PgDatabase(connection_params, application_schemas=schemas)
     # Follow the additive compatibility contract: database-only objects are
     # retained, and no rename or DROP is inferred from the edited model.
-    migrator = SqlMigrator(db, removeDisabled=True)
-    migrator.ormStructure = StructureValidator().validate(
-        XmlStructureProducer(xml).get_json_struct()
-    )
-    migrator.prepareMigrationCommands()
-    changes = migrator.getChanges()
-    if apply:
-        migrator.applyChanges()
-    return cast(str, changes)
+    try:
+        migrator = SqlMigrator(db, removeDisabled=True)
+        migrator.ormStructure = StructureValidator().validate(
+            XmlStructureProducer(xml).get_json_struct()
+        )
+        migrator.prepareMigrationCommands()
+        changes = migrator.getChanges()
+        if apply:
+            migrator.applyChanges()
+        return cast(str, changes)
+    finally:
+        db.closeConnection()
