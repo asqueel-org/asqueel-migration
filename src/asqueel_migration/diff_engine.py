@@ -3,7 +3,8 @@ diff_engine.py - Comparison engine between ORM and DB structures
 ==================================================================
 
 This module contains the :class:`DiffMixin`, which provides the logic to
-compare the JSON structures produced by ORM extractor and DB extractor
+compare the desired JSON structure supplied by a producer with the current
+structure returned by a database reader
 and generate a stream of change events.
 
 Comparison architecture
@@ -51,7 +52,7 @@ class DiffMixin:
     This mixin is composed into the :class:`SqlMigrator` class and
     requires the host to have these attributes:
     - ``sqlStructure``: JSON structure of the database (from the reader)
-    - ``ormStructure``: JSON structure of the ORM (from OrmExtractor)
+    - ``ormStructure``: working copy of the caller-supplied desired structure
     """
 
     @property

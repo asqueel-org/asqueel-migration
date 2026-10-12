@@ -5,15 +5,14 @@
 editor_service.py - the DB <-> XML round-trip logic (transport-agnostic)
 ========================================================================
 
-The two operations the editor exposes, as plain functions with no web
-framework: introspect a live database into the natural SQL-model XML, and
-migrate a database to match an edited XML. Keeping the logic here (not in the
-server) means the round-trip is testable directly against a database; the
-kajenn server is a thin wrapper over these.
+Two Python operations with no web framework: introspect a live database into
+the natural SQL-model XML, and migrate a database to match edited XML.
+HTTP, OpenAPI and MCP interfaces belong to the separate asqueel-dbmanager
+application. These helpers own their database connections and close them on
+both success and failure.
 
-Both take ``connection_params`` — the dict the tool asks for
-(``{host, port, user, password, dbname}``) — so the tool is agnostic about
-which database it targets.
+Both take ``connection_params`` (``{host, port, user, password, dbname}``)
+to select the target PostgreSQL database.
 """
 
 from typing import Any, cast

@@ -2,9 +2,9 @@
 exceptions.py - Migration system exceptions
 =============================================
 
-Local exception classes replacing Genropy-specific exceptions.
-These provide the same interface used by command_builder,
-db_extractor and migrator.
+Exception classes shared by validation, database readers, command generation
+and migration execution. They carry diagnostics without depending on an
+application framework.
 """
 
 

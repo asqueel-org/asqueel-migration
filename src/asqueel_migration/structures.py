@@ -80,7 +80,7 @@ COL_JSON_KEYS = (
 )
 """Column attribute keys preserved in the JSON structure.
 
-Both the ORM extractor and the DB extractor filter column attributes
+Both producers and database readers filter column attributes
 keeping only these keys, ensuring a homogeneous comparison.
 """
 
@@ -116,11 +116,10 @@ def new_structure_root(dbname):
 def new_schema_item(schema_name):
     """Create a JSON item for a database schema.
 
-    In Genropy each package corresponds to a PostgreSQL schema.
-    The schema contains the package's tables.
+    The schema groups tables under their physical namespace.
 
     Args:
-        schema_name: Name of the schema (corresponds to the package sqlname).
+        schema_name: Physical schema name.
 
     Returns:
         dict: Schema item with empty ``tables``.

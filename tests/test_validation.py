@@ -6,6 +6,8 @@ what a real producer emits, including wave-0 entities (CHECK constraints
 and comments).
 """
 
+import copy
+
 import pytest
 
 from asqueel_migration import FORMAT_VERSION, SqlMigrator, StructureValidator
@@ -153,3 +155,88 @@ class TestFormatVersionEnvelope:
         assert 'format_version' not in migrator.ormStructure
         assert migrator.ormStructure['root'] == structure['root']
         assert migrator.ormStructure['root'] is not structure['root']
+
+
+@pytest.mark.parametrize('formal_validation', [False, True])
+@pytest.mark.parametrize('value', [None, [], 'invalid'])
+@pytest.mark.parametrize('path', [
+    'root',
+    'root.schemas',
+    'root.extensions',
+    'root.event_triggers',
+    'root.schemas.alfa',
+    'root.schemas.alfa.tables',
+    'root.schemas.alfa.tables.alfa_author',
+    'root.schemas.alfa.tables.alfa_author.attributes',
+    'root.schemas.alfa.tables.alfa_author.columns',
+    'root.schemas.alfa.tables.alfa_author.columns.id',
+    'root.schemas.alfa.tables.alfa_author.columns.id.attributes',
+    'root.schemas.alfa.tables.alfa_recipe.relations',
+    'root.schemas.alfa.tables.alfa_recipe.constraints',
+    'root.schemas.alfa.tables.alfa_recipe.indexes',
+])
+def test_malformed_containers_report_path_without_mutating_input(monkeypatch, formal_validation, value, path):
+    from asqueel_migration import validation
+
+    if formal_validation:
+        pytest.importorskip('jsonschema')
+    else:
+        monkeypatch.setattr(validation, 'jsonschema', None)
+    structure = sample_structure()
+    keys = path.split('.')
+    parent = structure
+    for key in keys[:-1]:
+        parent = parent[key]
+    parent[keys[-1]] = value
+    original = copy.deepcopy(structure)
+    with pytest.raises(SqlValidationError) as error:
+        StructureValidator().validate(structure)
+    assert f'{path}: must be a dict' in error.value.errors
+    assert structure == original
+
+
+@pytest.mark.parametrize('container', ['relations', 'constraints', 'indexes'])
+@pytest.mark.parametrize('bad_attributes', [False, True])
+def test_malformed_leaf_entities_without_optional_validator(monkeypatch, container, bad_attributes):
+    from asqueel_migration import validation
+
+    monkeypatch.setattr(validation, 'jsonschema', None)
+    structure = sample_structure()
+    items = structure['root']['schemas']['alfa']['tables']['alfa_recipe'][container]
+    name = next(iter(items))
+    path = f'root.schemas.alfa.tables.alfa_recipe.{container}.{name}'
+    if bad_attributes:
+        items[name]['attributes'] = []
+        path += '.attributes'
+    else:
+        items[name] = None
+    with pytest.raises(SqlValidationError) as error:
+        StructureValidator().validate(structure)
+    assert f'{path}: must be a dict' in error.value.errors
+
+
+def test_multiple_shape_errors_are_reported_together():
+    structure = sample_structure()
+    root = structure['root']
+    root['extensions'] = []
+    root['schemas']['alfa']['tables']['alfa_author']['columns'] = None
+    with pytest.raises(SqlValidationError) as error:
+        StructureValidator().validate(structure)
+    assert error.value.errors == [
+        'root.schemas.alfa.tables.alfa_author.columns: must be a dict',
+        'root.extensions: must be a dict',
+    ]
+
+
+def test_older_producer_normalization_without_optional_validator(monkeypatch):
+    from asqueel_migration import validation
+
+    monkeypatch.setattr(validation, 'jsonschema', None)
+    structure = sample_structure()
+    del structure['root']['extensions']
+    del structure['root']['event_triggers']
+    original = copy.deepcopy(structure)
+    normalized = StructureValidator().validate(structure)
+    assert normalized['root']['extensions'] == {}
+    assert normalized['root']['event_triggers'] == {}
+    assert structure == original

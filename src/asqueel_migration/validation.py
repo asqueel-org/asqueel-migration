@@ -38,14 +38,16 @@ carrying the full list of problems.
 import copy
 import json
 from importlib.resources import files
+from types import ModuleType
 
+from .exceptions import SqlValidationError
+from .structures import COL_JSON_KEYS, DTYPE_CODES, FORMAT_VERSION, hashed_name
+
+jsonschema: ModuleType | None
 try:
     import jsonschema
 except ImportError:  # formal schema validation is an optional extra
     jsonschema = None
-
-from .exceptions import SqlValidationError
-from .structures import COL_JSON_KEYS, DTYPE_CODES, FORMAT_VERSION, hashed_name
 
 ROOT_CONTAINERS = ('schemas', 'extensions', 'event_triggers')
 TABLE_CONTAINERS = ('columns', 'relations', 'constraints', 'indexes')
@@ -89,6 +91,8 @@ class StructureValidator:
 
         normalized = {'root': copy.deepcopy(structure['root'])}
         self.normalize_containers(normalized['root'])
+        if self.errors:
+            raise SqlValidationError(self.errors)
         self.check_formal_schema(normalized)
         self.check_root(normalized['root'])
         if self.errors:
@@ -96,21 +100,40 @@ class StructureValidator:
         return normalized
 
     def normalize_containers(self, root):
-        """Fill missing containers so older-format input diffs cleanly."""
+        """Fill absent containers and reject malformed ones before traversal.
+
+        Shape checks also run without the optional jsonschema dependency.
+        Invalid values remain intact in the working copy for diagnostics.
+        """
         if not isinstance(root, dict):
+            self.errors.append('root: must be a dict')
             return
         for container in ROOT_CONTAINERS:
-            root.setdefault(container, {})
-        for schema_item in root['schemas'].values():
-            if not isinstance(schema_item, dict):
-                continue
-            schema_item.setdefault('tables', {})
-            for table_item in schema_item['tables'].values():
-                if not isinstance(table_item, dict):
+            for schema_path, schema_item in self.normalize_collection(root, container, 'root'):
+                if container != 'schemas':
                     continue
-                table_item.setdefault('attributes', {})
-                for container in TABLE_CONTAINERS:
-                    table_item.setdefault(container, {})
+                for table_path, table_item in self.normalize_collection(schema_item, 'tables', schema_path):
+                    table_item.setdefault('attributes', {})
+                    for table_container in TABLE_CONTAINERS:
+                        self.normalize_collection(table_item, table_container, table_path)
+
+    def normalize_collection(self, parent, key, path):
+        """Return entity objects and collect errors at their full paths."""
+        path = f'{path}.{key}'
+        collection = parent.setdefault(key, {})
+        if not isinstance(collection, dict):
+            self.errors.append(f'{path}: must be a dict')
+            return []
+        entities = []
+        for name, item in collection.items():
+            item_path = f'{path}.{name}'
+            if not isinstance(item, dict):
+                self.errors.append(f'{item_path}: must be a dict')
+                continue
+            if 'attributes' in item and not isinstance(item['attributes'], dict):
+                self.errors.append(f'{item_path}.attributes: must be a dict')
+            entities.append((item_path, item))
+        return entities
 
     def check_formal_schema(self, normalized):
         """Validate against the packaged JSON Schema when available."""

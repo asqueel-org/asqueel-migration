@@ -71,7 +71,7 @@ class MysqlWriter(BaseWriter):
     """
 
     # MySQL has no USING clause and no simple type conversions.
-    TYPE_CONVERSIONS = {}
+    TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
 
     # MySQL 8 supports foreign keys, table constraints and the three DDL
     # operations; everything else in the vocabulary is stripped/gated by

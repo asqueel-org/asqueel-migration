@@ -2,14 +2,14 @@
 database.py - Database abstraction layer
 ==========================================
 
-Provides the ``Database`` and ``BaseAdapter`` classes that replicate
+Provides the ``Database`` and ``BaseAdapter`` classes that define
 the ``self.db`` / ``self.db.adapter`` interface used by the migration
-modules (command_builder, executor, db_extractor, migrator).
+modules (command_builder, executor, readers, migrator).
 
-In Genropy these roles are filled by ``GnrSqlDb`` and the database
-adapter (e.g. ``GnrPostgresAdapter``).  Here they are standalone
-classes that delegate SQL generation to a :class:`BaseWriter` and
-SQL execution / introspection to a :class:`BaseReader`.
+Concrete adapters delegate SQL generation to a :class:`BaseWriter`,
+introspection to a :class:`BaseReader`, and execute SQL through their
+database driver. Database facades provide connection settings and schema
+selection without depending on an ORM or application server.
 """
 
 from abc import ABC, abstractmethod
@@ -31,7 +31,7 @@ class BaseAdapter(ABC):
     """
 
     writer: "BaseWriter"
-    TYPE_CONVERSIONS = {}
+    TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
     supports_atomic_ddl = False
 
     # -- SQL generation (delegated to writer) --------------------------------
@@ -166,7 +166,7 @@ class Database(ABC):
     """Abstract database object exposing the ``self.db`` interface.
 
     Provides access to the adapter and to database-level queries
-    used by the migrator and db_extractor.
+    used by the migrator and database readers.
     """
 
     @property

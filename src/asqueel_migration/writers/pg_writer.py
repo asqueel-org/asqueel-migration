@@ -102,7 +102,7 @@ BASE_TYPE_CONVERSIONS = {
 
 # Conversioni PostgreSQL con clausola USING (legacy PG adapter).
 # I valori non conformi al pattern diventano NULL.
-PG_TYPE_CONVERSIONS = {
+PG_TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {
     **BASE_TYPE_CONVERSIONS,
 
     # PostgreSQL-specific text -> timestamp conversions

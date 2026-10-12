@@ -172,10 +172,18 @@ finally:
 ```
 
 `SqlMigrator(db, structure=desired)` validates and snapshots the input.
+The service functions require a desired schema: `None` is rejected before
+accessing the database. `SqlMigrator(db)` still supports deferred assignment.
+Malformed structure containers raise `SqlValidationError` with their field
+paths, including when the optional `jsonschema` dependency is absent.
 The legacy `migrator.ormStructure = desired` form remains available and now
 copies its input. Each preparation filters a fresh working copy; source data
 and repeated warnings are preserved. To change the desired schema, assign it
 again: edits to the exposed working dictionary do not update the source.
+
+The connection's database name is the physical destination, including for
+`CREATE DATABASE`. The desired structure's `root.entity_name` is a model label
+and does not redirect creation to another database.
 
 Plan identifiers cover the desired/current structure and generated commands.
 They detect drift before execution, but do not prevent concurrent external DDL.
@@ -201,6 +209,21 @@ The legacy XML helpers in `editor_service` remain transport-independent.
 | `readers/` | Per-dialect introspection (live DB → normalized JSON) |
 | `writers/` | Per-dialect DDL generation |
 | `adapters/` | Concrete `Database`/adapter pairs per dialect |
+
+## Development checks
+
+Install the development dependencies before running static checks:
+
+```bash
+python -m pip install -e ".[dev,postgresql]"
+python -m ruff check src tests
+python -m mypy src/asqueel_migration
+```
+
+The `dev` extra includes JSON Schema and PyMySQL stubs, and the pymssql driver
+with its bundled Python 3 stubs. These are development dependencies; using the
+migrator does not require installing every database driver. Mypy reads the
+installed `dictdiffer` source because it has no published stubs.
 
 ## Documentation
 

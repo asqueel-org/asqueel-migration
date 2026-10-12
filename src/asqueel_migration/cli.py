@@ -6,7 +6,7 @@ cli.py - the migrator command-line interface
 ============================================
 
 A thin process boundary over :class:`SqlMigrator`, designed to be driven by a
-producer (e.g. Genropy's ``gnr db migrate``) as a subprocess: the caller pipes
+producer as a subprocess: the caller pipes
 one JSON job on stdin and reads the result on stdout. This keeps the producer
 and the migration engine in separate processes — the producer never imports
 this package, it only runs the ``asqueel-migrate`` command.
@@ -37,7 +37,9 @@ Subcommands:
                         additive changes, 1 if additions/alterations are needed.
                         Extra database objects are intentionally compatible.
 
-Only PostgreSQL is wired today (the producer path Genropy needs first).
+Only PostgreSQL is wired today. These commands call SqlMigrator directly;
+they do not expose the reviewed-plan identifier used by service.plan_migration
+and service.apply_migration.
 """
 
 import argparse
