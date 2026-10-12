@@ -122,7 +122,7 @@ class MysqlWriter(BaseWriter):
             str: Column SQL definition (``"name" varchar(100) NOT NULL``).
         """
         sql_type = self.column_sql_type(dtype, size)
-        parts = [f'"{column_name}" {sql_type}']
+        parts = [f'{self.quote_identifier(column_name)} {sql_type}']
 
         if generated_expression:
             parts.append(f'GENERATED ALWAYS AS ({generated_expression}) STORED')
@@ -146,7 +146,7 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: ``"schema"."table"``
         """
-        return f'"{schema_name}"."{table_name}"'
+        return f'{self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}'
 
     def create_db_sql(self, dbname, encoding='UNICODE'):
         """Generate CREATE DATABASE with a utf8mb4 character set.
@@ -162,7 +162,7 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: CREATE DATABASE command.
         """
-        return f'CREATE DATABASE "{dbname}" CHARACTER SET utf8mb4;'
+        return f'CREATE DATABASE {self.quote_identifier(dbname)} CHARACTER SET utf8mb4;'
 
     def create_schema_sql(self, schema_name):
         """Generate CREATE SCHEMA (equivalent to CREATE DATABASE in MySQL).
@@ -173,7 +173,7 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: CREATE SCHEMA command.
         """
-        return f'CREATE SCHEMA "{schema_name}";'
+        return f'CREATE SCHEMA {self.quote_identifier(schema_name)};'
 
     def alter_column_sql(self, column_name, new_sql_type):
         """Generate MODIFY COLUMN (type only).
@@ -188,7 +188,7 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: SQL fragment.
         """
-        return f'MODIFY COLUMN "{column_name}" {new_sql_type}'
+        return f'MODIFY COLUMN {self.quote_identifier(column_name)} {new_sql_type}'
 
     def alter_column_with_conversion_sql(self, column_name, new_sql_type,
                                          conversion_expression):
@@ -204,7 +204,7 @@ class MysqlWriter(BaseWriter):
         """
         raise SqlMigrationError(
             'MySQL has no USING clause for type conversions '
-            f'(column "{column_name}")'
+            f'(column {self.quote_identifier(column_name)})'
         )
 
     def add_not_null_sql(self, column_name):
@@ -218,7 +218,7 @@ class MysqlWriter(BaseWriter):
         """
         raise SqlMigrationError(
             'MySQL cannot add NOT NULL without the full column definition '
-            f'(column "{column_name}")'
+            f'(column {self.quote_identifier(column_name)})'
         )
 
     def drop_not_null_sql(self, column_name):
@@ -232,7 +232,7 @@ class MysqlWriter(BaseWriter):
         """
         raise SqlMigrationError(
             'MySQL cannot drop NOT NULL without the full column definition '
-            f'(column "{column_name}")'
+            f'(column {self.quote_identifier(column_name)})'
         )
 
     def constraint_sql(self, constraint_name, constraint_type, columns=None,
@@ -251,10 +251,10 @@ class MysqlWriter(BaseWriter):
             str: Constraint SQL definition.
         """
         if constraint_type == "UNIQUE":
-            columns_str = ', '.join(f'"{col}"' for col in columns)
-            return f'CONSTRAINT "{constraint_name}" UNIQUE ({columns_str})'
+            columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} UNIQUE ({columns_str})'
         elif constraint_type == "CHECK":
-            return f'CONSTRAINT "{constraint_name}" CHECK ({check_clause})'
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} CHECK ({check_clause})'
         raise ValueError(f"Unsupported constraint type: {constraint_type}")
 
     def drop_constraint_sql(self, constraint_name):
@@ -266,7 +266,7 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: SQL fragment.
         """
-        return f'DROP CONSTRAINT "{constraint_name}"'
+        return f'DROP CONSTRAINT {self.quote_identifier(constraint_name)}'
 
     def foreign_key_sql(self, fk_name, columns, related_table, related_schema,
                         related_columns, on_delete=None, on_update=None,
@@ -290,13 +290,13 @@ class MysqlWriter(BaseWriter):
         Returns:
             str: Full FK SQL definition.
         """
-        columns_str = ', '.join(f'"{col}"' for col in columns)
-        related_columns_str = ', '.join(f'"{col}"' for col in related_columns)
+        columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+        related_columns_str = ', '.join(self.quote_identifier(col) for col in related_columns)
         on_delete_str = f" ON DELETE {on_delete}" if on_delete else ""
         on_update_str = f" ON UPDATE {on_update}" if on_update else ""
         return (
-            f'CONSTRAINT "{fk_name}" FOREIGN KEY ({columns_str}) '
-            f'REFERENCES "{related_schema}"."{related_table}" '
+            f'CONSTRAINT {self.quote_identifier(fk_name)} FOREIGN KEY ({columns_str}) '
+            f'REFERENCES {self.quote_identifier(related_schema)}.{self.quote_identifier(related_table)} '
             f'({related_columns_str})'
             f'{on_delete_str}{on_update_str}'
         )
@@ -375,7 +375,8 @@ class MysqlWriter(BaseWriter):
             str: SQL command.
         """
         full_table = self.table_fullname(schema_name, table_name)
-        return f'ALTER TABLE {full_table} ADD PRIMARY KEY ({pkeys});'
+        columns = ','.join(self.quote_identifier(col) for col in pkeys.split(','))
+        return f'ALTER TABLE {full_table} ADD PRIMARY KEY ({columns});'
 
     def comment_on_column_sql(self, schema_name, table_name, column_name,
                               comment):

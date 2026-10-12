@@ -431,8 +431,8 @@ class PgReader(BaseReader):
         """Return True if the column contains only NULL values."""
         sql = f'''
             SELECT COUNT(*) = 0 AS is_empty
-            FROM "{schema_name}"."{table_name}"
-            WHERE "{column_name}" IS NOT NULL
+            FROM {self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}
+            WHERE {self.quote_identifier(column_name)} IS NOT NULL
         '''
         try:
             self.connect()

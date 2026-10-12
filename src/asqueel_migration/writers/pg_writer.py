@@ -208,7 +208,7 @@ class PgWriter(BaseWriter):
             str: Definizione SQL della colonna.
         """
         sql_type = self.column_sql_type(dtype, size)
-        parts = [f'"{column_name}" {sql_type}']
+        parts = [f'{self.quote_identifier(column_name)} {sql_type}']
 
         if generated_expression:
             parts.append(f'GENERATED ALWAYS AS ({generated_expression}) STORED')
@@ -232,7 +232,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: ``"schema"."table"``
         """
-        return f'"{schema_name}"."{table_name}"'
+        return f'{self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}'
 
     def create_db_sql(self, dbname, encoding='UNICODE'):
         """Genera CREATE DATABASE.
@@ -244,7 +244,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Comando SQL.
         """
-        return f"CREATE DATABASE \"{dbname}\" ENCODING '{encoding}';"
+        return f"CREATE DATABASE {self.quote_identifier(dbname)} ENCODING '{encoding}';"
 
     def create_schema_sql(self, schema_name):
         """Genera CREATE SCHEMA.
@@ -255,7 +255,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Comando SQL.
         """
-        return f'CREATE SCHEMA "{schema_name}";'
+        return f'CREATE SCHEMA {self.quote_identifier(schema_name)};'
 
     def alter_column_sql(self, column_name, new_sql_type):
         """Genera ALTER COLUMN TYPE (senza USING).
@@ -267,7 +267,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Frammento SQL.
         """
-        return f'ALTER COLUMN "{column_name}" TYPE {new_sql_type}'
+        return f'ALTER COLUMN {self.quote_identifier(column_name)} TYPE {new_sql_type}'
 
     def alter_column_with_conversion_sql(self, column_name, new_sql_type,
                                          conversion_expression):
@@ -282,7 +282,7 @@ class PgWriter(BaseWriter):
             str: Frammento SQL con clausola USING.
         """
         return (
-            f'ALTER COLUMN "{column_name}" TYPE {new_sql_type} '
+            f'ALTER COLUMN {self.quote_identifier(column_name)} TYPE {new_sql_type} '
             f'USING {conversion_expression}'
         )
 
@@ -295,7 +295,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Frammento SQL.
         """
-        return f'ALTER COLUMN "{column_name}" SET NOT NULL'
+        return f'ALTER COLUMN {self.quote_identifier(column_name)} SET NOT NULL'
 
     def drop_not_null_sql(self, column_name):
         """Genera ALTER COLUMN DROP NOT NULL.
@@ -306,7 +306,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Frammento SQL.
         """
-        return f'ALTER COLUMN "{column_name}" DROP NOT NULL'
+        return f'ALTER COLUMN {self.quote_identifier(column_name)} DROP NOT NULL'
 
     def constraint_sql(self, constraint_name, constraint_type, columns=None,
                        check_clause=None):
@@ -322,10 +322,10 @@ class PgWriter(BaseWriter):
             str: Definizione SQL del constraint.
         """
         if constraint_type == "UNIQUE":
-            columns_str = ', '.join(f'"{col}"' for col in columns)
-            return f'CONSTRAINT "{constraint_name}" UNIQUE ({columns_str})'
+            columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} UNIQUE ({columns_str})'
         elif constraint_type == "CHECK":
-            return f'CONSTRAINT "{constraint_name}" CHECK ({check_clause})'
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} CHECK ({check_clause})'
         raise ValueError(f"Unsupported constraint type: {constraint_type}")
 
     def drop_constraint_sql(self, constraint_name):
@@ -337,7 +337,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Frammento SQL.
         """
-        return f'DROP CONSTRAINT IF EXISTS "{constraint_name}"'
+        return f'DROP CONSTRAINT IF EXISTS {self.quote_identifier(constraint_name)}'
 
     def foreign_key_sql(self, fk_name, columns, related_table, related_schema,
                         related_columns, on_delete=None, on_update=None,
@@ -358,8 +358,8 @@ class PgWriter(BaseWriter):
         Returns:
             str: Definizione SQL completa della FK.
         """
-        columns_str = ', '.join(f'"{col}"' for col in columns)
-        related_columns_str = ', '.join(f'"{col}"' for col in related_columns)
+        columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+        related_columns_str = ', '.join(self.quote_identifier(col) for col in related_columns)
         on_delete_str = f" ON DELETE {on_delete}" if on_delete else ""
         on_update_str = f" ON UPDATE {on_update}" if on_update else ""
         deferrable_str = " DEFERRABLE" if deferrable else ""
@@ -367,8 +367,8 @@ class PgWriter(BaseWriter):
             " INITIALLY DEFERRED" if deferrable and initially_deferred else ""
         )
         return (
-            f'CONSTRAINT "{fk_name}" FOREIGN KEY ({columns_str}) '
-            f'REFERENCES "{related_schema}"."{related_table}" '
+            f'CONSTRAINT {self.quote_identifier(fk_name)} FOREIGN KEY ({columns_str}) '
+            f'REFERENCES {self.quote_identifier(related_schema)}.{self.quote_identifier(related_table)} '
             f'({related_columns_str})'
             f'{on_delete_str}{on_update_str}'
             f'{deferrable_str}{initially_deferred_str}'
@@ -436,7 +436,8 @@ class PgWriter(BaseWriter):
             str: Comando SQL.
         """
         full_table = self.table_fullname(schema_name, table_name)
-        return f"ALTER TABLE {full_table} DROP CONSTRAINT IF EXISTS {table_name}_pkey;"
+        constraint = self.quote_identifier(table_name + '_pkey')
+        return f'ALTER TABLE {full_table} DROP CONSTRAINT IF EXISTS {constraint};'
 
     def add_table_pkey_sql(self, schema_name, table_name, pkeys):
         """Genera ADD PRIMARY KEY.
@@ -450,7 +451,8 @@ class PgWriter(BaseWriter):
             str: Comando SQL.
         """
         full_table = self.table_fullname(schema_name, table_name)
-        return f'ALTER TABLE {full_table} ADD PRIMARY KEY ({pkeys});'
+        columns = ','.join(self.quote_identifier(col) for col in pkeys.split(','))
+        return f'ALTER TABLE {full_table} ADD PRIMARY KEY ({columns});'
 
     def comment_on_column_sql(self, schema_name, table_name, column_name,
                               comment):
@@ -467,7 +469,7 @@ class PgWriter(BaseWriter):
         """
         value = self._comment_literal(comment)
         return (
-            f'COMMENT ON COLUMN "{schema_name}"."{table_name}"."{column_name}" '
+            f'COMMENT ON COLUMN {self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}.{self.quote_identifier(column_name)} '
             f'IS {value}'
         )
 
@@ -483,7 +485,7 @@ class PgWriter(BaseWriter):
             str: Comando SQL senza punto e virgola finale.
         """
         value = self._comment_literal(comment)
-        return f'COMMENT ON TABLE "{schema_name}"."{table_name}" IS {value}'
+        return f'COMMENT ON TABLE {self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)} IS {value}'
 
     def _comment_literal(self, comment):
         """Quota il testo di un commento come literal SQL (NULL se None)."""
@@ -501,7 +503,7 @@ class PgWriter(BaseWriter):
         Returns:
             str: Comando SQL.
         """
-        return f"CREATE EXTENSION IF NOT EXISTS {extension_name};"
+        return f"CREATE EXTENSION IF NOT EXISTS {self.quote_identifier(extension_name)};"
 
     def execute(self, sql, auto_commit=False, manager=False):
         """Esegue un comando SQL sul database PostgreSQL.

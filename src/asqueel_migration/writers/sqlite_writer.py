@@ -104,7 +104,7 @@ class SqliteWriter(BaseWriter):
             str: Column definition (e.g. ``"name" varchar(100) NOT NULL``).
         """
         sql_type = self.column_sql_type(dtype, size)
-        parts = [f'"{column_name}" {sql_type}']
+        parts = [f'{self.quote_identifier(column_name)} {sql_type}']
         if generated_expression:
             parts.append(f'GENERATED ALWAYS AS ({generated_expression}) STORED')
         else:
@@ -118,7 +118,7 @@ class SqliteWriter(BaseWriter):
 
     def table_fullname(self, schema_name, table_name):
         """Return the quoted qualified table name (``"schema"."table"``)."""
-        return f'"{schema_name}"."{table_name}"'
+        return f'{self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}'
 
     def alter_table_commands(self, schema_name, table_name, column_fragments):
         """Emit one ALTER TABLE per fragment (SQLite allows one action each)."""
@@ -136,10 +136,10 @@ class SqliteWriter(BaseWriter):
         the PostgreSQL writer's shape.
         """
         if constraint_type == "UNIQUE":
-            columns_str = ', '.join(f'"{col}"' for col in columns)
-            return f'CONSTRAINT "{constraint_name}" UNIQUE ({columns_str})'
+            columns_str = ', '.join(self.quote_identifier(col) for col in columns)
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} UNIQUE ({columns_str})'
         elif constraint_type == "CHECK":
-            return f'CONSTRAINT "{constraint_name}" CHECK ({check_clause})'
+            return f'CONSTRAINT {self.quote_identifier(constraint_name)} CHECK ({check_clause})'
         raise ValueError(f"Unsupported constraint type: {constraint_type}")
 
     def create_index_sql(self, schema_name, table_name, columns,

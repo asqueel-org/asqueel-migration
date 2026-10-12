@@ -103,7 +103,7 @@ class SqliteReader(BaseReader):
             self._conn.execute('PRAGMA foreign_keys = ON')
             for schema_name, path in self.schema_files.items():
                 self._conn.execute(
-                    f'ATTACH DATABASE \'{path}\' AS "{schema_name}"'
+                    f'ATTACH DATABASE ? AS {self.quote_identifier(schema_name)}', (path,)
                 )
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as error:
             raise SqlConnectionException(dbname, original_error=error) from error
@@ -146,7 +146,7 @@ class SqliteReader(BaseReader):
         columns = []
         for schema_name in schemas:
             tables = self._fetch(
-                f'SELECT name FROM "{schema_name}".sqlite_master '
+                f'SELECT name FROM {self.quote_identifier(schema_name)}.sqlite_master '
                 "WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
             )
             if not tables:
@@ -161,7 +161,7 @@ class SqliteReader(BaseReader):
                 continue
             for (table_name,) in tables:
                 for row in self._fetch(
-                    f'PRAGMA "{schema_name}".table_info("{table_name}")'
+                    f'PRAGMA {self.quote_identifier(schema_name)}.table_info({self.quote_identifier(table_name)})'
                 ):
                     _cid, name, declared, notnull, dflt, _pk = row
                     dtype, size = self._reverse_type(declared)
@@ -182,7 +182,7 @@ class SqliteReader(BaseReader):
         constraints = defaultdict(lambda: defaultdict(dict))
         for schema_name in schemas:
             tables = self._fetch(
-                f'SELECT name FROM "{schema_name}".sqlite_master '
+                f'SELECT name FROM {self.quote_identifier(schema_name)}.sqlite_master '
                 "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             )
             for (table_name,) in tables:
@@ -194,7 +194,7 @@ class SqliteReader(BaseReader):
     def _fetch_primary_key(self, schema_name, table_name, table_constraints):
         pk_columns = []
         for row in self._fetch(
-            f'PRAGMA "{schema_name}".table_info("{table_name}")'
+            f'PRAGMA {self.quote_identifier(schema_name)}.table_info({self.quote_identifier(table_name)})'
         ):
             _cid, name, _declared, _notnull, _dflt, pk = row
             if pk:
@@ -209,13 +209,13 @@ class SqliteReader(BaseReader):
 
     def _fetch_unique(self, schema_name, table_name, table_constraints):
         for row in self._fetch(
-            f'PRAGMA "{schema_name}".index_list("{table_name}")'
+            f'PRAGMA {self.quote_identifier(schema_name)}.index_list({self.quote_identifier(table_name)})'
         ):
             _seq, index_name, unique, origin, _partial = row
             if not self._is_unique_constraint_index(index_name, unique, origin):
                 continue
             info = self._fetch(
-                f'PRAGMA "{schema_name}".index_info("{index_name}")'
+                f'PRAGMA {self.quote_identifier(schema_name)}.index_info({self.quote_identifier(index_name)})'
             )
             column_names = [name for _seqno, _cid, name in info]
             table_constraints["UNIQUE"][index_name] = {
@@ -244,17 +244,17 @@ class SqliteReader(BaseReader):
                 name: sql
                 for _t, name, _tbl, sql in self._fetch(
                     f"SELECT type, name, tbl_name, sql FROM "
-                    f'"{schema_name}".sqlite_master WHERE type=\'index\''
+                    f'{self.quote_identifier(schema_name)}.sqlite_master WHERE type=\'index\''
                 )
             }
             tables = self._fetch(
-                f'SELECT name FROM "{schema_name}".sqlite_master '
+                f'SELECT name FROM {self.quote_identifier(schema_name)}.sqlite_master '
                 "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             )
             for (table_name,) in tables:
                 table_key = (schema_name, table_name)
                 for row in self._fetch(
-                    f'PRAGMA "{schema_name}".index_list("{table_name}")'
+                    f'PRAGMA {self.quote_identifier(schema_name)}.index_list({self.quote_identifier(table_name)})'
                 ):
                     _seq, index_name, unique, origin, _partial = row
                     columns = self._index_columns(schema_name, index_name)
@@ -278,9 +278,8 @@ class SqliteReader(BaseReader):
     def _index_columns(self, schema_name, index_name):
         """Return the ordered ``{column: sort_order}`` map of an index."""
         columns = {}
-        escaped_name = index_name.replace('"', '""')
         for row in self._fetch(
-            f'PRAGMA "{schema_name}".index_xinfo("{escaped_name}")'
+            f'PRAGMA {self.quote_identifier(schema_name)}.index_xinfo({self.quote_identifier(index_name)})'
         ):
             _seqno, _cid, name, desc, _coll, key = row
             if not key or name is None:
@@ -308,8 +307,8 @@ class SqliteReader(BaseReader):
     def is_empty_column(self, schema_name, table_name, column_name):
         """Return True if the column contains only NULL values."""
         sql = (
-            f'SELECT COUNT(*) = 0 FROM "{schema_name}"."{table_name}" '
-            f'WHERE "{column_name}" IS NOT NULL'
+            f'SELECT COUNT(*) = 0 FROM {self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)} '
+            f'WHERE {self.quote_identifier(column_name)} IS NOT NULL'
         )
         try:
             self.connect()

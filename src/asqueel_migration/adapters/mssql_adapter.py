@@ -134,7 +134,7 @@ class MssqlAdapter(BaseAdapter):
         )
 
     def adaptSqlName(self, name):
-        return f'"{name}"'
+        return self.writer.quote_identifier(name)
 
     def struct_constraint_sql(self, constraint_name, constraint_type,
                               columns=None, check_clause=None, **kwargs):

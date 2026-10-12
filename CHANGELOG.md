@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Quote identifiers consistently in migration DDL, introspection and conversion
+  backup commands, including names containing double quotes. Primary-key columns,
+  primary-key constraint names and PostgreSQL extension names are now quoted in
+  generated SQL. SQLite schema attachment also handles quoted aliases and paths
+  containing apostrophes (#16).
+
 ## 0.1.2 (unreleased)
 
 - Rename the distribution, Python package and CLI to Asqueel Migration.

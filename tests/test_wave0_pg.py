@@ -46,7 +46,7 @@ class TestCheckConstraints(BaseMigrationTest):
             'CREATE TABLE "alfa"."alfa_product"(\n'
             ' "id" serial8 NOT NULL,\n'
             ' "rating" integer,\n'
-            ' PRIMARY KEY (id),\n'
+            ' PRIMARY KEY ("id"),\n'
             ' CONSTRAINT "chk_product_rating" CHECK ((rating >= 0))\n'
             ');'
         )
@@ -73,7 +73,7 @@ class TestCheckConstraints(BaseMigrationTest):
         tbl.checkConstraint('chk_product_rating', '(rating > 0)')
         check_value = (
             'ALTER TABLE "alfa"."alfa_product"\n'
-            'DROP CONSTRAINT chk_product_rating;\n'
+            'DROP CONSTRAINT "chk_product_rating";\n'
             'ALTER TABLE "alfa"."alfa_product"\n'
             'ADD CONSTRAINT "chk_product_rating" CHECK ((rating > 0));'
         )
@@ -121,7 +121,7 @@ class TestComments(BaseMigrationTest):
             'CREATE TABLE "alfa"."alfa_movie"(\n'
             ' "id" serial8 NOT NULL,\n'
             ' "title" text,\n'
-            ' PRIMARY KEY (id)\n'
+            ' PRIMARY KEY ("id")\n'
             ');\n'
             'COMMENT ON TABLE "alfa"."alfa_movie" IS \'Movies catalog\';\n'
             'COMMENT ON COLUMN "alfa"."alfa_movie"."title" IS \'The movie\'\'s title\';'
