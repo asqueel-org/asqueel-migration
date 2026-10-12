@@ -605,6 +605,13 @@ class CommandBuilderMixin:
             oldvalue: Previous dtype in the DB.
             newvalue: New dtype from the ORM.
         """
+        if (oldvalue, newvalue) in getattr(self.db.adapter, 'TYPE_COMPATIBILITY', ()):
+            return
+        if 'serial4' in (oldvalue, newvalue):
+            raise SqlMigrationError(
+                'Changing to or from serial4 requires an explicit migration; '
+                'automatic conversion is not supported'
+            )
         TEXT_TYPES = ('T', 'A', 'C', 'X', 'Z', 'P')
 
         # Generic rule: any type -> text is always possible

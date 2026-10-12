@@ -536,3 +536,17 @@ not certify structural equality or the absence of unsupported features.
 See the [capability matrix](capabilities.md), [known limits](known_limits.md) and
 [development/release checks](maintenance.md). Features marked unreleased are
 not present in the published 0.2.1 package.
+
+## PostgreSQL 32-bit generated keys (unreleased)
+
+Declare `{"name": "id", "dtype": "serial4"}` on a table with `"pkey": "id"`.
+The equivalent XML is `<column name="id" dtype="serial4"/>`. Both producers
+emit the same normalized dtype, accepted by the JSON and XSD contracts.
+Use PostgreSQL; other backends reject this declaration before connecting.
+
+`serial4` creates integer keys with automatic sequence defaults. On an existing
+SERIAL4 table the matching plan is empty, including populated tables. The legacy
+`I` declaration still preserves an existing SERIAL4 column but does not request
+an automatically generated key on fresh databases. `serial` retains its 64-bit
+meaning. Do not change between these serial declarations to perform a width
+conversion: that separate operation is not implemented. See [known limits](known_limits.md).

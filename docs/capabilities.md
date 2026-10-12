@@ -1,7 +1,8 @@
 # Dialect capabilities
 
 This page describes the current development branch. The SQLite `main`, legacy
-`TIMESTAMP`, fresh-table foreign key and composite UNIQUE fixes are **unreleased**;
+`TIMESTAMP`, fresh-table foreign key, composite UNIQUE and PostgreSQL `serial4`
+features are **unreleased**;
 0.2.1 does not include them. See the changelog before adopting these features.
 
 The tables describe the migration engine, not everything the database itself
@@ -30,8 +31,8 @@ standalone removal is not implemented.
 
 Foreign key deferral and index method, predicate, tablespace and storage options
 are represented. Type conversion depends on the conversion matrix and existing
-data; `force`/`backup` can be destructive. `serial` means 64-bit BIGSERIAL; see
-[the SERIAL4 limitation](known_limits.md).
+data; `force`/`backup` can be destructive. `serial` means 64-bit BIGSERIAL; `serial4` declares 32-bit sequence-backed keys.
+See [serial widths and conversion limits](known_limits.md).
 
 ## SQLite
 

@@ -33,7 +33,7 @@
       <xs:enumeration value="T"/><xs:enumeration value="TSV"/>
       <xs:enumeration value="VEC"/><xs:enumeration value="X"/>
       <xs:enumeration value="Z"/><xs:enumeration value="jsonb"/>
-      <xs:enumeration value="serial"/>
+      <xs:enumeration value="serial"/><xs:enumeration value="serial4"/>
     </xs:restriction>
   </xs:simpleType>
 

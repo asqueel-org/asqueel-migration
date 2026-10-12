@@ -28,6 +28,7 @@ perche' sono gli stessi che l'introspezione restituisce)::
     HZ -> time with time zone
     M  -> money   O -> bytea   TSV -> tsvector   VEC -> vector
     serial -> serial8
+    serial4 -> serial4
 """
 
 from asqueel_migration.writers.base_writer import BaseWriter
@@ -57,6 +58,7 @@ REV_TYPES_DICT = {
     'Z': 'text',
     'jsonb': 'jsonb',
     'serial': 'serial8',
+    'serial4': 'serial4',
 }
 
 # Conversioni semplici condivise (legacy base adapter TYPE_CONVERSIONS).
@@ -160,7 +162,7 @@ class PgWriter(BaseWriter):
 
     # PostgreSQL supports the full capability vocabulary (see BaseWriter).
     CAPABILITIES = frozenset({
-        'extensions', 'event_triggers', 'comments',
+        'extensions', 'event_triggers', 'comments', 'serial4',
         'foreign_keys', 'table_constraints', 'fk_deferrable',
         'index_where', 'index_method', 'index_tablespace',
         'index_with_options', 'alter_column_type', 'drop_constraint',

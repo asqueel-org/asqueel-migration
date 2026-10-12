@@ -312,8 +312,11 @@ class PgReader(BaseReader):
                 size = col.pop('length', None)
                 if size is not None:
                     col['size'] = str(size)
-            if dtype == 'L' and col.get('_pg_default'):
-                col['dtype'] = 'serial'
+            if col.get('_pg_default'):
+                if dtype == 'L':
+                    col['dtype'] = 'serial'
+                elif data_type == 'integer':
+                    col['dtype'] = 'serial4'
             columns.append(col)
         return columns
 

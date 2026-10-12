@@ -111,7 +111,7 @@ import json
 
 from .command_builder import CommandBuilderMixin
 from .diff_engine import DiffMixin
-from .exceptions import NonExistingDbException
+from .exceptions import NonExistingDbException, SqlMigrationError
 from .executor import ExecutorMixin
 from .structures import nested_defaultdict
 
@@ -292,6 +292,12 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
 
     def applyTableCapabilities(self, caps, tablepath, table):
         """Strip unsupported attributes from one table of the ormStructure."""
+        if 'serial4' not in caps:
+            for column_name, column in table.get('columns', {}).items():
+                if column['attributes'].get('dtype') == 'serial4':
+                    raise SqlMigrationError(
+                        f'serial4 is supported only by PostgreSQL: {tablepath}.{column_name}'
+                    )
         if 'foreign_keys' not in caps and table.get('relations'):
             names = ', '.join(table['relations'])
             table['relations'] = {}

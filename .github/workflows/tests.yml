@@ -102,7 +102,17 @@ jobs:
           python -m pip install -e ".[dev,postgresql]"
 
       - name: Run PostgreSQL integration tests
-        run: pytest -m postgresql --no-cov
+        run: >-
+          pytest -m postgresql --cov=asqueel_migration
+          --cov-report=xml:coverage-postgresql.xml --cov-report=term
+
+      - name: Upload PostgreSQL coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage-postgresql.xml
+          name: postgresql
+          fail_ci_if_error: false
 
   mysql:
     name: MySQL integration

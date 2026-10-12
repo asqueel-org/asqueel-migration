@@ -32,6 +32,9 @@ class BaseAdapter(ABC):
 
     writer: "BaseWriter"
     TYPE_CONVERSIONS: dict[tuple[str, str], str | bool | None] = {}
+    # Directional adoption pairs (actual, desired): existing storage already
+    # satisfies the model, so preserve it without conversion DDL.
+    TYPE_COMPATIBILITY: frozenset[tuple[str, str]] = frozenset()
     supports_atomic_ddl = False
 
     # -- SQL generation (delegated to writer) --------------------------------

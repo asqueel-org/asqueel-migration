@@ -40,8 +40,9 @@ marked Unreleased must not be assumed available from PyPI 0.2.1.
   external DDL.
 - Existing SQLite constraint transformations need table rebuilding, which is not
   implemented. Cross-file FKs and requested deferral are unsupported.
-- SERIAL4 autogeneration and safe SERIAL4-to-SERIAL8 upgrades require an explicit
-  contract decision. PostgreSQL initial `public` creation remains a known limit.
+- SERIAL4 autogeneration/adoption is implemented after 0.2.1. Explicit
+  SERIAL4-to-SERIAL8 upgrades remain in issue #27. PostgreSQL initial `public`
+  creation remains a known limit.
 - Keep MySQL/SQL Server integration coverage; defer additional dialect work.
 - Introduce stronger type annotations/protocols gradually, without weakening the
   blocking checks or changing the public JSON contract unintentionally.
