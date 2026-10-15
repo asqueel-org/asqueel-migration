@@ -1,7 +1,7 @@
 # Release Asqueel Migration
 
 Distribution: `asqueel-migration`. Python package: `asqueel_migration`.
-Repository: `asqueel-org/asqueel-migration`. Prepared version: `0.2.2` (unreleased).
+Repository: `asqueel-org/asqueel-migration`. Release version: `0.2.2`.
 The single version source is `src/asqueel_migration/__init__.py`; Hatch reads it
 for both wheel and source archive. See [CHANGELOG.md](CHANGELOG.md).
 The retained historical tags `v0.1.0` and `v0.1.1`

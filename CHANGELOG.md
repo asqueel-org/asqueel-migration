@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.2 — Unreleased
+## 0.2.2 — 2026-10-15
 
 - Remove column UNIQUE using the actual constraint and index names from the
   database catalog, following GenroPy #1425. Qualify standalone index drops by
