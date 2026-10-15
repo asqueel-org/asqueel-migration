@@ -29,6 +29,7 @@ from asqueel_migration.structures import (
     new_schema_item,
     new_structure_root,
     new_table_item,
+    unique_index_column,
 )
 
 
@@ -50,6 +51,8 @@ class BaseReader(ABC):
 
     def __init__(self, connection_params=None):
         self.connection_params = connection_params
+        self.column_unique_objects = {}
+        self.column_unique_indexes = {}
 
     def get_json_struct(self, dbname, schemas=None):
         """Read the database structure and return the normalized JSON.
@@ -59,6 +62,8 @@ class BaseReader(ABC):
         a missing database and must not trigger a CREATE DATABASE).
         """
         self.json_structure = new_structure_root(dbname)
+        self.column_unique_objects = {}
+        self.column_unique_indexes = {}
         self.json_meta = nested_defaultdict()
         self.json_schemas = self.json_structure['root']['schemas']
         fetched = {}
@@ -181,6 +186,8 @@ class BaseReader(ABC):
         single-column UNIQUE becomes a column attribute, multi-column UNIQUE
         stays a separate constraint; FOREIGN KEY is delegated to
         :meth:`process_table_relations`; CHECK becomes a named constraint.
+        Real single-column constraint names are kept in column_unique_objects
+        for removal, separately from the semantic JSON structure.
         """
         for tablepath, constraints_by_type in constraints_dict.items():
             schema_name, table_name = tablepath
@@ -206,8 +213,7 @@ class BaseReader(ABC):
                         continue
                     # UNIQUE on single column -> column attribute
                     multiple_unique.pop(k)
-                    self.json_schemas[schema_name]["tables"][table_name][
-                        'columns'][columns[0]]['attributes']['unique'] = True
+                    self.mark_column_unique(table_json, columns[0], 'constraint', k)
 
             # FOREIGN KEY -> delegate to process_table_relations
             self.process_table_relations(
@@ -257,6 +263,9 @@ class BaseReader(ABC):
         Indexes with an associated ``constraint_type`` (created
         automatically by PK or UNIQUE) are skipped, being already
         represented by the corresponding constraint.
+        Plain single-column UNIQUE indexes use the same column uniqueness
+        rule as constraints (GenroPy #1425). Their original declarations are
+        also retained for matching explicitly authored JSON indexes.
         """
         for tablepath, index_dict in indexes_dict.items():
             schema_name, table_name = tablepath
@@ -266,6 +275,9 @@ class BaseReader(ABC):
                 # Skip indexes automatically created by constraints (PK, UNIQUE)
                 if index_attributes.get('constraint_type'):
                     continue
+                column = unique_index_column(index_attributes, table_json['attributes'].get('pkeys'))
+                index_attributes = dict(index_attributes)
+                index_attributes.pop('expressions', None)
                 indexed_columns = list(index_attributes['columns'].keys())
                 index_item = new_index_item(
                     schema_name, table_name,
@@ -273,7 +285,18 @@ class BaseReader(ABC):
                     attributes=index_attributes,
                     index_name=index_name
                 )
+                if column is not None:
+                    self.mark_column_unique(table_json, column, 'index', index_name)
+                    key = (schema_name, table_name, column)
+                    self.column_unique_indexes.setdefault(key, []).append(index_item)
+                    continue
                 table_json['indexes'][index_item['entity_name']] = index_item
+
+    def mark_column_unique(self, table_json, column_name, kind, object_name):
+        """Keep real catalog names separately from the semantic JSON diff."""
+        table_json['columns'][column_name]['attributes']['unique'] = True
+        key = (table_json['schema_name'], table_json['table_name'], column_name)
+        self.column_unique_objects.setdefault(key, []).append((kind, object_name))
 
     def process_extensions(self, extensions, **kwargs):
         """Process installed PostgreSQL extensions.

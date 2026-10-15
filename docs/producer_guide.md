@@ -312,7 +312,19 @@ Index rebuilds target the existing physical name in its schema/table namespace;
 `ignore_constraint_name=True` retains that name even if the producer supplies
 another. With `ignore_constraint_name=False`, a name-only change uses native
 rename in PostgreSQL/MySQL and a drop/create in SQLite/SQL Server. Removing an
-index from the model still does not automatically drop it.
+index from the model still does not automatically drop it, except for column
+uniqueness as described below.
+
+For column uniqueness, migration follows the legacy rule: an existing
+non-partial UNIQUE index on one plain, non-primary-key column enforces the
+same `unique: true` as a UNIQUE constraint. When neither column uniqueness nor
+an explicit UNIQUE index is requested, migration drops **all** constraints and
+indexes enforcing that column's uniqueness, using their actual catalog
+names and schema-qualified index names. Partial, expression and multi-column
+indexes are not classified as column uniqueness. An explicitly declared UNIQUE
+index in the JSON remains an index, preserving its name, ordering and options;
+it is not implicitly converted into a column constraint. The input JSON is
+not modified during preparation.
 
 ```json
 {"columns": ["title"]}                              // plain list

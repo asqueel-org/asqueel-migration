@@ -178,7 +178,8 @@ INDEXES_SQL = """
         pg_get_expr(ix.indpred, t.oid) AS where_clause,
         i.reloptions AS with_options,
         array_position(ix.indkey, a.attnum) AS ordinal_position,
-        con.contype AS constraint_type
+        con.contype AS constraint_type,
+        ix.indexprs IS NOT NULL AS expressions
     FROM pg_class t
     JOIN pg_index ix ON t.oid = ix.indrelid
     JOIN pg_class i ON i.oid = ix.indexrelid
@@ -381,7 +382,7 @@ class PgReader(BaseReader):
         for row in self._fetch(INDEXES_SQL, (list(schemas),)):
             (schema_name, table_name, index_name, column_name, is_unique,
              desc_order, index_method, tablespace, where_clause,
-             with_options, _ordinal_position, constraint_type) = row
+             with_options, _ordinal_position, constraint_type, expressions) = row
             table_key = (schema_name, table_name)
             if index_name not in indexes[table_key]:
                 indexes[table_key][index_name] = {
@@ -392,6 +393,7 @@ class PgReader(BaseReader):
                     "with_options": {},
                     "columns": {},
                     "constraint_type": constraint_type,
+                    "expressions": expressions,
                 }
             sort_order = "DESC" if desc_order else None
             indexes[table_key][index_name]["columns"][column_name] = sort_order

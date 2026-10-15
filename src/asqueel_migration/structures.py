@@ -399,6 +399,19 @@ def json_equal(json1, json2):
     return json1_str == json2_str
 
 
+def unique_index_column(attributes, pkeys):
+    """Legacy single-column UNIQUE indexes represent column uniqueness.
+
+    Partial, expression and multi-column indexes retain their own semantics.
+    """
+    columns = list(attributes.get('columns', {}))
+    if (attributes.get('unique') and len(columns) == 1
+            and not attributes.get('where') and not attributes.get('expressions')
+            and columns[0] != pkeys):
+        return columns[0]
+    return None
+
+
 def clean_attributes(attributes):
     """Remove attributes with empty, None, False or default values.
 

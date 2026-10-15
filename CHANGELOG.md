@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 — Unreleased
+
+- Remove column UNIQUE using the actual constraint and index names from the
+  database catalog, following GenroPy #1425. Qualify standalone index drops by
+  schema, remove all objects enforcing that column's uniqueness, and preserve
+  ordinary indexes. Repeated preparation converges and duplicate values are
+  accepted after the removal.
+- Recognize simple single-column UNIQUE indexes as column uniqueness while
+  preserving explicitly declared index names, ordering and options. Partial,
+  expression and multi-column indexes retain their separate semantics.
 
 - Add PostgreSQL `serial4` declarations across JSON/XML contracts, SQL generation
   and introspection. Preserve existing SERIAL4 sequences/data and legacy `I`
@@ -52,7 +61,7 @@
   generated SQL. SQLite schema attachment also handles quoted aliases and paths
   containing apostrophes (#16).
 
-## 0.1.2 (unreleased)
+## 0.1.2
 
 - Rename the distribution, Python package and CLI to Asqueel Migration.
 - Retain all fixes from 0.1.1; prepare GitHub Trusted Publishing for the new name.

@@ -522,19 +522,7 @@ class CommandBuilderMixin:
                     f"{item['table_name']}.{column_name}"
                 ):
                     return
-                columns = [column_name]
-                constraints_dict = table_dict['constraints']
-                constraint_name = hashed_name(
-                    schema=item['schema_name'],
-                    table=item['table_name'],
-                    columns=columns, obj_type='cst'
-                )
-                sql = self.db.adapter.struct_drop_constraint_sql(
-                    constraint_name=constraint_name,
-                    schema_name=item['schema_name'],
-                    table_name=item['table_name'],
-                )
-                constraints_dict[constraint_name] = {"command": sql}
+                self.dropColumnUniqueness(item, table_dict)
 
         elif changed_attribute == 'comment':
             # COMMENT ON is an idempotent replace; None clears the comment
@@ -549,6 +537,19 @@ class CommandBuilderMixin:
         elif changed_attribute in ('generated_expression', 'extra_sql'):
             # These attributes are not automatically migratable
             return
+
+    def dropColumnUniqueness(self, item, table_dict):
+        """Legacy #1425: drop every actual object enforcing column uniqueness."""
+        schema, table = item['schema_name'], item['table_name']
+        key = (schema, table, item['entity_name'])
+        for kind, name in self.column_unique_objects.get(key, ()):
+            if kind == 'constraint':
+                sql = self.db.adapter.struct_drop_constraint_sql(
+                    constraint_name=name, schema_name=schema, table_name=table)
+                table_dict['constraints'][f'drop_{name}'] = {'command': sql}
+            else:
+                sql = self.db.adapter.struct_drop_index_sql(schema, table, name)
+                table_dict['indexes'][f'drop_{name}'] = {'command': sql}
 
     def _handle_size_change(self, item, columns_dict, column_name):
         """Handle column size change.

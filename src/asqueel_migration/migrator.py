@@ -113,7 +113,7 @@ from .command_builder import CommandBuilderMixin
 from .diff_engine import DiffMixin
 from .exceptions import NonExistingDbException, SqlMigrationError
 from .executor import ExecutorMixin
-from .structures import nested_defaultdict
+from .structures import nested_defaultdict, unique_index_column
 
 
 class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
@@ -352,7 +352,36 @@ class SqlMigrator(DiffMixin, CommandBuilderMixin, ExecutorMixin):
         Args:
             schemas: List of schemas to inspect.
         """
-        self.sqlStructure = self.db.adapter.reader.get_json_struct(self.db.get_dbname(), schemas=schemas)
+        reader = self.db.adapter.reader
+        self.sqlStructure = reader.get_json_struct(self.db.get_dbname(), schemas=schemas)
+        self.column_unique_objects = copy.deepcopy(reader.column_unique_objects)
+        self._match_explicit_unique_indexes(reader)
+
+    def _match_explicit_unique_indexes(self, reader):
+        """Keep authored index declarations distinct from column unique=True.
+
+        The legacy column rule must not discard the name, ordering or options
+        of explicit indexes in the existing JSON contract. Restore those
+        objects for the ordinary index diff, which already uses real names.
+        """
+        for schema_name, schema in self.ormStructure.get('root', {}).get('schemas', {}).items():
+            for table_name, table in schema.get('tables', {}).items():
+                for index_key, index in table.get('indexes', {}).items():
+                    column = unique_index_column(index['attributes'], table['attributes'].get('pkeys'))
+                    key = (schema_name, table_name, column)
+                    candidates = reader.column_unique_indexes.get(key, ())
+                    if not candidates:
+                        continue
+                    desired_name = index['attributes'].get('index_name')
+                    existing = next((candidate for candidate in candidates
+                                     if candidate['attributes']['index_name'] == desired_name), candidates[0])
+                    actual = self.sqlStructure['root']['schemas'][schema_name]['tables'][table_name]
+                    actual['indexes'][index_key] = copy.deepcopy(existing)
+                    name = existing['attributes']['index_name']
+                    self.column_unique_objects[key].remove(('index', name))
+                    if (not self.column_unique_objects[key]
+                            and not table['columns'][column]['attributes'].get('unique')):
+                        actual['columns'][column]['attributes'].pop('unique', None)
 
     def clearSql(self):
         """Reset the SQL structure extracted from the database."""
