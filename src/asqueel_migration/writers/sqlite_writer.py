@@ -65,6 +65,7 @@ class SqliteWriter(BaseWriter):
     # Represent FKs and UNIQUE, but gate ALTER ADD/DROP separately.
     CAPABILITIES = frozenset({
         'index_where', 'foreign_keys', 'inline_foreign_keys', 'unique_constraints',
+        'fk_deferrable',
     })
 
     def column_sql_type(self, dtype, size=None):
@@ -229,8 +230,6 @@ class SqliteWriter(BaseWriter):
     def foreign_key_sql(self, fk_name, columns, related_table, related_schema,
                         related_columns, on_delete=None, on_update=None,
                         deferrable=False, initially_deferred=False):
-        if deferrable or initially_deferred:
-            self._unsupported('deferrable foreign keys')
         q = self.quote_identifier
         local = ', '.join(q(col) for col in columns)
         remote = ', '.join(q(col) for col in related_columns)
@@ -240,6 +239,12 @@ class SqliteWriter(BaseWriter):
         for clause, action in (('DELETE', on_delete), ('UPDATE', on_update)):
             if action:
                 sql += f' ON {clause} {action}'
+        # Same rule as the PostgreSQL writer: INITIALLY DEFERRED only
+        # together with DEFERRABLE.
+        if deferrable:
+            sql += ' DEFERRABLE'
+            if initially_deferred:
+                sql += ' INITIALLY DEFERRED'
         return sql
 
     def execute(self, sql, auto_commit=False, manager=False):

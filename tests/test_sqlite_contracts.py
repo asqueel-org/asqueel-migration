@@ -148,7 +148,7 @@ def test_existing_table_constraint_additions_refused(tmp_path, kind):
         db.closeConnection()
 
 
-@pytest.mark.parametrize('change', ['cross_schema', 'deferrable', 'check'])
+@pytest.mark.parametrize('change', ['cross_schema', 'check'])
 def test_unsupported_features_refused_before_creation(tmp_path, change):
     path = tmp_path / 'base.db'
     db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main'])
@@ -159,8 +159,6 @@ def test_unsupported_features_refused_before_creation(tmp_path, change):
         relation['related_schema'] = 'elsewhere'
         desired['root']['schemas'].update(model('elsewhere')['root']['schemas'])
         db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main', 'elsewhere'])
-    elif change == 'deferrable':
-        relation['deferrable'] = True
     else:
         constraint = next(iter(table['constraints'].values()))['attributes']
         constraint.pop('columns')
@@ -169,6 +167,90 @@ def test_unsupported_features_refused_before_creation(tmp_path, change):
     with pytest.raises(UnsupportedMigration):
         apply_migration(db, desired, expected_plan=plan['plan_id'])
     assert not path.exists()
+
+
+def hierarchy(**deferral):
+    return JsonStructureProducer({'db': 'logical', 'schemas': [{'name': 'main', 'tables': [{
+        'name': 'nodes', 'pkey': 'id', 'columns': [
+            {'name': 'id', 'dtype': 'T'}, {'name': 'parent_id', 'dtype': 'T'},
+        ],
+        'relations': [{
+            'columns': ['parent_id'], 'related_schema': 'main', 'related_table': 'nodes',
+            'related_columns': ['id'], 'on_delete': 'CASCADE', **deferral,
+        }],
+    }]}]}).get_json_struct()
+
+
+def test_deferred_self_reference_allows_child_before_parent(tmp_path):
+    path = tmp_path / 'base.db'
+    desired = hierarchy(deferrable=True, initially_deferred=True)
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main'])
+    try:
+        plan = apply(db, desired)
+        assert 'ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED' in plan['sql']
+        db.closeConnection()
+        assert plan_migration(db, desired)['empty']
+    finally:
+        db.closeConnection()
+    with sqlite3.connect(path, isolation_level=None) as conn:
+        conn.execute('PRAGMA foreign_keys = ON')
+        conn.execute('BEGIN')
+        conn.execute("INSERT INTO nodes VALUES ('child', 'root')")
+        conn.execute("INSERT INTO nodes VALUES ('root', NULL)")
+        conn.execute('COMMIT')
+        assert conn.execute('SELECT id, parent_id FROM nodes ORDER BY id').fetchall() == [
+            ('child', 'root'), ('root', None),
+        ]
+        conn.execute('BEGIN')
+        conn.execute("INSERT INTO nodes VALUES ('orphan', 'missing')")
+        with pytest.raises(sqlite3.IntegrityError, match='FOREIGN KEY'):
+            conn.execute('COMMIT')
+        conn.execute('ROLLBACK')
+        assert conn.execute("SELECT id FROM nodes WHERE id='orphan'").fetchall() == []
+
+
+def test_immediate_self_reference_rejects_child_before_parent(tmp_path):
+    path = tmp_path / 'base.db'
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main'])
+    try:
+        assert 'DEFERRABLE' not in apply(db, hierarchy())['sql']
+    finally:
+        db.closeConnection()
+    with sqlite3.connect(path, isolation_level=None) as conn:
+        conn.execute('PRAGMA foreign_keys = ON')
+        conn.execute('BEGIN')
+        with pytest.raises(sqlite3.IntegrityError, match='FOREIGN KEY'):
+            conn.execute("INSERT INTO nodes VALUES ('child', 'root')")
+        conn.execute('ROLLBACK')
+
+
+@pytest.mark.parametrize('declared, deferral', [
+    ('DEFERRABLE INITIALLY DEFERRED', {'deferrable': True, 'initially_deferred': True}),
+    ('deferrable', {'deferrable': True}),
+    ('DEFERRABLE INITIALLY IMMEDIATE', {'deferrable': True}),
+    ('NOT DEFERRABLE INITIALLY DEFERRED', {}),
+    ('', {}),
+])
+@pytest.mark.parametrize('form', ['table', 'column'])
+def test_introspect_legacy_fk_deferral(tmp_path, declared, deferral, form):
+    path = tmp_path / 'base.db'
+    references = f'REFERENCES "nodes" ("id") ON DELETE CASCADE {declared}'
+    if form == 'table':
+        body = f'"id" TEXT PRIMARY KEY, "parent_id" TEXT, CONSTRAINT "x" FOREIGN KEY ("parent_id") {references}'
+    else:
+        body = f'"id" TEXT PRIMARY KEY, "parent_id" TEXT {references}'
+    with sqlite3.connect(path) as conn:
+        conn.execute(f'CREATE TABLE "nodes" ({body})')
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main'])
+    try:
+        assert apply(db, hierarchy(**deferral))['empty']
+        if deferral.get('initially_deferred'):
+            # Dropping the deferral is a FK rebuild, gated on SQLite.
+            skipped = plan_migration(db, hierarchy())['skipped_changes']
+            assert skipped
+            assert all(change['capability'] == 'drop_constraint' for change in skipped)
+    finally:
+        db.closeConnection()
 
 
 def test_skipped_changes_are_structured_repeatable_and_keep_warnings(tmp_path):

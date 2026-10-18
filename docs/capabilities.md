@@ -52,8 +52,9 @@ See [serial widths and conversion limits](known_limits.md).
 
 Foreign keys are inline in `CREATE TABLE`, enforced on connections opened by
 this library, and read through `PRAGMA foreign_key_list`. UPDATE/DELETE actions
-and composite references round-trip. Cross-attached-file foreign keys and
-requested deferral options are rejected by reviewed apply. Constraint names are
+and composite references round-trip. Cross-attached-file foreign keys
+are rejected by reviewed apply. `DEFERRABLE` and `INITIALLY DEFERRED` are
+created with the table and read back from the stored `CREATE TABLE` text. Constraint names are
 not recovered by SQLite PRAGMAs; use the default `ignore_constraint_name=True`.
 No automatic table rebuild is implemented. `TIMESTAMP` maps to `DH` without
 rewriting a legacy column. Use dtype `I` for SQLite integer primary keys.

@@ -39,7 +39,8 @@ marked Unreleased must not be assumed available from PyPI 0.2.1.
   Database creation is separate and plan identifiers do not prevent concurrent
   external DDL.
 - Existing SQLite constraint transformations need table rebuilding, which is not
-  implemented. Cross-file FKs and requested deferral are unsupported.
+  implemented. Cross-file FKs are unsupported; FK deferral is supported on new
+  tables since 0.2.3.
 - SERIAL4 autogeneration/adoption is implemented after 0.2.1. Explicit
   SERIAL4-to-SERIAL8 upgrades remain in issue #27. PostgreSQL initial `public`
   creation remains a known limit.

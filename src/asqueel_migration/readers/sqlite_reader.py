@@ -33,6 +33,7 @@ v1 limitations
   back as dtype ``I`` (not ``serial``): migrations targeting SQLite must
   declare integer PKs as ``I``.
 - Foreign keys are read from PRAGMAs, which omit names and deferral options.
+  Deferral options are recovered from the stored CREATE TABLE text.
 - CHECK constraints are not introspected.
 """
 
@@ -201,6 +202,7 @@ class SqliteReader(BaseReader):
             f'PRAGMA {self.quote_identifier(schema_name)}.foreign_key_list({self.quote_identifier(table_name)})'
         ):
             groups[row[0]].append(row)
+        deferral = self._fk_deferral(schema_name, table_name) if groups else {}
         for fk_id, rows in groups.items():
             rows.sort(key=lambda row: row[1])
             _, _, target, _, _, on_update, on_delete, _ = rows[0]
@@ -211,15 +213,113 @@ class SqliteReader(BaseReader):
                 pk = {}
                 self._fetch_primary_key(schema_name, target, pk)
                 related_columns = pk.get('PRIMARY KEY', {}).get('columns', [])
+            columns = [row[3] for row in rows]
+            deferrable, initially_deferred = deferral.get(
+                tuple(name.lower() for name in columns), (False, False)
+            )
             table_constraints['FOREIGN KEY'][fk_id] = {
                 'constraint_type': 'FOREIGN KEY',
-                'columns': [row[3] for row in rows],
+                'columns': columns,
                 'related_schema': schema_name,
                 'related_table': target,
                 'related_columns': related_columns,
                 'on_update': on_update,
                 'on_delete': on_delete,
+                'deferrable': deferrable,
+                'initially_deferred': initially_deferred,
             }
+
+    def _fk_deferral(self, schema_name, table_name):
+        """Return the deferral options of a table's foreign keys.
+
+        SQLite stores the CREATE TABLE text verbatim and the PRAGMAs omit
+        deferral, so each top-level definition of the table body holding a
+        ``REFERENCES`` clause is parsed. Both the table-constraint form
+        (``FOREIGN KEY (cols) REFERENCES ...``) and the column-constraint
+        form (``col type REFERENCES ...``) are recognized.
+
+        Returns:
+            dict: ``{(local columns, lower-cased): (deferrable,
+            initially_deferred)}``.
+        """
+        row = self._fetch(
+            f'SELECT sql FROM {self.quote_identifier(schema_name)}.sqlite_master '
+            'WHERE type=\'table\' AND name=?',
+            (table_name,),
+        )
+        result = {}
+        for text, masked in self._table_body_items(row[0][0]):
+            references = re.search(r'\bREFERENCES\b', masked, re.IGNORECASE)
+            if not references:
+                continue
+            head = re.match(
+                r'\s*(?:CONSTRAINT\s+\S+\s+)?FOREIGN\s+KEY\s*\(([^)]*)\)',
+                masked, re.IGNORECASE,
+            )
+            if head:
+                columns = text[head.start(1):head.end(1)].split(',')
+            else:
+                columns = [text.split(None, 1)[0]]
+            clause = re.search(
+                r'(NOT\s+)?DEFERRABLE(?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?',
+                masked[references.end():], re.IGNORECASE,
+            )
+            deferrable = bool(clause) and not clause.group(1)
+            initially_deferred = deferrable and (clause.group(2) or '').upper() == 'DEFERRED'
+            key = tuple(self._unquote(column).lower() for column in columns)
+            result[key] = (deferrable, initially_deferred)
+        return result
+
+    @staticmethod
+    def _table_body_items(create_sql):
+        """Split a CREATE TABLE body into its top-level definitions.
+
+        Returns a list of ``(text, masked)`` pairs: ``masked`` has the same
+        length as ``text`` with quoted content blanked, so keyword searches
+        never match inside identifiers or string literals.
+        """
+        closers = {'"': '"', "'": "'", '`': '`', '[': ']'}
+        masked = []
+        index = 0
+        while index < len(create_sql):
+            char = create_sql[index]
+            if char in closers:
+                end = create_sql.find(closers[char], index + 1)
+                while closers[char] != ']' and end + 1 < len(create_sql) and create_sql[end + 1] == char:
+                    end = create_sql.find(char, end + 2)
+                masked.append(char + '_' * (end - index - 1) + closers[char])
+                index = end + 1
+                continue
+            masked.append(char)
+            index += 1
+        masked = ''.join(masked)
+        start = masked.index('(') + 1
+        items = []
+        depth = 0
+        item_start = start
+        for position in range(start, len(masked)):
+            char = masked[position]
+            if char == '(':
+                depth += 1
+            elif char == ')' and depth:
+                depth -= 1
+            elif char in ',)' and not depth:
+                items.append((create_sql[item_start:position], masked[item_start:position]))
+                item_start = position + 1
+                if char == ')':
+                    break
+        return items
+
+    @staticmethod
+    def _unquote(identifier):
+        """Return an identifier without its SQLite quoting."""
+        identifier = identifier.strip()
+        if identifier[:1] in '"`' and identifier[-1:] == identifier[:1]:
+            quote = identifier[0]
+            return identifier[1:-1].replace(quote * 2, quote)
+        if identifier[:1] == '[' and identifier[-1:] == ']':
+            return identifier[1:-1]
+        return identifier
 
     def _fetch_primary_key(self, schema_name, table_name, table_constraints):
         pk_columns = []

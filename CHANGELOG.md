@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 — 2026-10-18
+
+- Create SQLite foreign keys with `DEFERRABLE` / `INITIALLY DEFERRED` on new
+  tables, following the PostgreSQL writer: `initially_deferred` applies only
+  together with `deferrable`. A self-referencing deferred FK lets a child row be
+  inserted before its parent inside one transaction.
+- Read SQLite FK deferral from the stored `CREATE TABLE` text, in table-constraint
+  and column-constraint form, so a deferred FK converges on the next plan.
+  Changing the deferral of an existing FK remains a gated table rebuild.
+
 ## 0.2.2 — 2026-10-15
 
 - Remove column UNIQUE using the actual constraint and index names from the

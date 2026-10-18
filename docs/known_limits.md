@@ -34,13 +34,14 @@ finds residual changes. Replan and review before retrying after a failure.
 
 New tables can declare same-schema foreign keys and composite UNIQUE constraints
 in the development branch. Additions or changes to those constraints on existing
-tables require a table rebuild, which the engine does not implement. CHECK,
-foreign key deferral and cross-file foreign keys remain unsupported. Do not
+tables require a table rebuild, which the engine does not implement; this
+includes changing the deferral of an existing foreign key. CHECK and cross-file
+foreign keys remain unsupported. Do not
 suppress skipped-operation errors to create an unconstrained schema.
 
 SQLite PRAGMAs do not expose FK names or deferral clauses. The reader represents
-FK columns, target and actions, with structural names; it does not prove the
-absence of an existing deferred constraint. Standalone unique indexes also have
+FK columns, target and actions, with structural names, and recovers deferral
+from the stored `CREATE TABLE` text. Standalone unique indexes also have
 limited introspection fidelity; prefer declared UNIQUE constraints for uniqueness.
 Declared type mapping is not a full SQLite affinity equivalence system. Legacy
 `TIMESTAMP` is recognized as `DH`; this does not imply arbitrary type aliases are

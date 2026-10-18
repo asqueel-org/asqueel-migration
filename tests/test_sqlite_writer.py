@@ -2,7 +2,7 @@
 
 Exact-SQL oracles for the declared-type map, column/add-column fragments,
 one-per-fragment ALTER TABLE assembly, CREATE INDEX variants and the
-qualified table name; plus the explicit errors of the unsupported DDL
+qualified table name, foreign keys with deferral options; plus the explicit errors of the unsupported DDL
 methods.
 """
 
@@ -115,6 +115,33 @@ class TestConstraintSql:
         ) == 'CONSTRAINT "cst_c" CHECK (rating >= 0)'
 
 
+class TestForeignKeySql:
+    def test_plain(self, writer):
+        assert writer.foreign_key_sql('fk', ['a'], 'other', 'alfa', ['id']) == (
+            'CONSTRAINT "fk" FOREIGN KEY ("a") REFERENCES "other" ("id")'
+        )
+
+    def test_actions_then_deferral(self, writer):
+        assert writer.foreign_key_sql(
+            'fk', ['a'], 'other', 'alfa', ['id'], on_delete='CASCADE',
+            on_update='CASCADE', deferrable=True, initially_deferred=True,
+        ) == (
+            'CONSTRAINT "fk" FOREIGN KEY ("a") REFERENCES "other" ("id")'
+            ' ON DELETE CASCADE ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED'
+        )
+
+    def test_deferrable_only(self, writer):
+        assert writer.foreign_key_sql(
+            'fk', ['a'], 'other', 'alfa', ['id'], deferrable=True
+        ) == 'CONSTRAINT "fk" FOREIGN KEY ("a") REFERENCES "other" ("id") DEFERRABLE'
+
+    def test_initially_deferred_requires_deferrable(self, writer):
+        # Same rule as the PostgreSQL writer.
+        assert writer.foreign_key_sql(
+            'fk', ['a'], 'other', 'alfa', ['id'], initially_deferred=True
+        ) == 'CONSTRAINT "fk" FOREIGN KEY ("a") REFERENCES "other" ("id")'
+
+
 class TestUnsupportedRaise:
     @pytest.mark.parametrize('call', [
         lambda w: w.create_db_sql('db'),
@@ -129,7 +156,6 @@ class TestUnsupportedRaise:
         lambda w: w.create_extension_sql('unaccent'),
         lambda w: w.comment_on_column_sql('alfa', 'doc', 'c', 'x'),
         lambda w: w.comment_on_table_sql('alfa', 'doc', 'x'),
-        lambda w: w.foreign_key_sql('fk', ['a'], 'other', 'alfa', ['id'], deferrable=True),
         lambda w: w.execute('SELECT 1'),
     ])
     def test_raises_sql_migration_error(self, writer, call):
