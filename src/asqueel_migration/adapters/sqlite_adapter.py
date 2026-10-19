@@ -15,7 +15,8 @@ Schemas via ATTACH DATABASE
 
 SQLite has no schemas: the mapping is one file per schema. Given
 ``connection_params = {'dbname': '/abs/path/base.db'}``, schema ``<s>``
-lives in ``<dirname>/<stem>_<s>.db``; ``main`` uses the configured file.
+lives in ``<dirname>/<s>.db`` (GenroPy legacy layout); ``main`` uses the
+configured file.
 Every connection ATTACHes all the
 schema files and enables foreign keys, so ``"schema"."table"`` qualified
 names work natively. ``createSchemaSql`` returns the ATTACH statement (it
@@ -72,8 +73,9 @@ class SqliteAdapter(BaseAdapter):
             raise SqlConnectionException(dbname, original_error=error) from error
 
     def _connect_creating(self):
-        """Open a connection, creating the main file if it does not exist."""
+        """Open a connection, creating the main file and its folder if missing."""
         dbname = self.database.get_dbname()
+        os.makedirs(os.path.dirname(os.path.abspath(dbname)), exist_ok=True)
         connection = sqlite3.connect(dbname)
         connection.execute('PRAGMA foreign_keys = ON')
         for schema_name, path in self.database.schema_files().items():
@@ -272,7 +274,7 @@ class SqliteDatabase(Database):
 
     Consumers pass ``connection_params = {'dbname': '/abs/path/base.db'}``
     and the schema lists; ``main`` uses that file and any other schema
-    ``<s>`` maps to ``<dir>/<stem>_<s>.db``.
+    ``<s>`` maps to ``<dir>/<s>.db``.
     """
 
     def __init__(self, connection_params, application_schemas=None,
@@ -299,12 +301,10 @@ class SqliteDatabase(Database):
 
     def schema_files(self):
         """Map attached schemas to files; ``main`` is the configured database."""
-        dbname = self.get_dbname()
-        directory = os.path.dirname(dbname)
-        stem = os.path.splitext(os.path.basename(dbname))[0]
+        directory = os.path.dirname(self.get_dbname())
         schemas = self._application_schemas + self._read_only_schemas + self._tenant_schemas
         return {
-            schema_name: os.path.join(directory, f'{stem}_{schema_name}.db')
+            schema_name: os.path.join(directory, f'{schema_name}.db')
             for schema_name in schemas if schema_name != "main"
         }
 

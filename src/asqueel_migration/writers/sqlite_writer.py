@@ -11,8 +11,8 @@ Declared-type fidelity trick
 ----------------------------
 
 SQLite stores the *declared* type text verbatim and ``PRAGMA table_info``
-returns it unchanged. This writer therefore emits PostgreSQL-compatible
-type names (``varchar(N)``, ``timestamp without time zone``, ...) that the
+returns it unchanged. This writer emits the GenroPy legacy type names
+(``character varying(N)``, ``character(N)``, ``timestamp``, ...) that the
 :class:`SqliteReader` maps back exactly, so a round-trip through the live
 database is diff-stable.
 
@@ -30,16 +30,16 @@ through the gates/strips and raise an explicit error if called directly.
 from asqueel_migration.exceptions import SqlMigrationError
 from asqueel_migration.writers.base_writer import BaseWriter
 
-# Normalized dtype -> declared SQL type text. The names mirror the
-# PostgreSQL writer so the reader can reverse them with a single map.
+# Normalized dtype -> declared SQL type text. The names follow the GenroPy
+# legacy SQLite adapter (gnrsqlite ``revTypesDict``).
 # 'serial' collapses to 'integer': a single-column integer PK is a rowid
 # alias in SQLite, so autoincrement semantics are implicit.
 REV_TYPES_DICT = {
-    'A': 'varchar',
+    'A': 'character varying',
     'B': 'boolean',
-    'C': 'char',
+    'C': 'character',
     'D': 'date',
-    'DH': 'timestamp without time zone',
+    'DH': 'timestamp',
     'DHZ': 'timestamp with time zone',
     'H': 'time',
     'I': 'integer',
@@ -48,6 +48,7 @@ REV_TYPES_DICT = {
     'O': 'blob',
     'R': 'real',
     'T': 'text',
+    'X': 'blob',
     'jsonb': 'jsonb',
     'serial': 'integer',
 }
@@ -56,7 +57,7 @@ REV_TYPES_DICT = {
 class SqliteWriter(BaseWriter):
     """SQL generator for SQLite.
 
-    Emits ANSI double-quoted identifiers and PostgreSQL-compatible declared
+    Emits ANSI double-quoted identifiers and the GenroPy legacy declared
     types (see module docstring). No type conversions are supported.
     """
 
@@ -76,7 +77,7 @@ class SqliteWriter(BaseWriter):
             size: Column size ('0:N' for varchar, 'P,S' for numeric, ...).
 
         Returns:
-            str: Declared type text (e.g. ``varchar(100)``, ``numeric(10,2)``).
+            str: Declared type text (e.g. ``character varying(100)``, ``numeric(10,2)``).
         """
         if dtype != 'N' and size:
             if ':' in size:
@@ -103,7 +104,7 @@ class SqliteWriter(BaseWriter):
             generated_expression: Expression for a generated column.
 
         Returns:
-            str: Column definition (e.g. ``"name" varchar(100) NOT NULL``).
+            str: Column definition (e.g. ``"name" character varying(100) NOT NULL``).
         """
         sql_type = self.column_sql_type(dtype, size)
         parts = [f'{self.quote_identifier(column_name)} {sql_type}']

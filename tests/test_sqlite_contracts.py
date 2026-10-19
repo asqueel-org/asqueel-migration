@@ -69,8 +69,80 @@ def test_main_and_attached_schema_persist(tmp_path, existing):
             assert plan_migration(db, desired)['empty']
         finally:
             db.closeConnection()
-    assert not (tmp_path / 'base_main.db').exists()
-    assert (tmp_path / 'base_mail.db').exists()
+    assert not (tmp_path / 'main.db').exists()
+    assert (tmp_path / 'mail.db').exists()
+
+
+def test_schema_files_follow_legacy_layout(tmp_path):
+    db = SqliteDatabase({'dbname': str(tmp_path / 'base.db')}, application_schemas=['main', 'mail', 'adm'])
+    assert db.schema_files() == {'mail': str(tmp_path / 'mail.db'), 'adm': str(tmp_path / 'adm.db')}
+
+
+def test_missing_folder_of_main_file_is_created(tmp_path):
+    path = tmp_path / 'data' / 'nested' / 'base.db'
+    desired = model(foreign_key=False, unique=False)
+    desired['root']['schemas'].update(model('mail', foreign_key=False, unique=False)['root']['schemas'])
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=['main', 'mail'])
+    try:
+        apply(db, desired)
+    finally:
+        db.closeConnection()
+    assert path.exists()
+    assert (path.parent / 'mail.db').exists()
+
+
+@pytest.mark.parametrize('schema', ['main', 'mail'])
+def test_v02_type_names_show_no_differences(tmp_path, schema):
+    path = tmp_path / 'base.db'
+    sqlite3.connect(path).close()
+    actual = path if schema == 'main' else tmp_path / 'mail.db'
+    with sqlite3.connect(actual) as conn:
+        conn.execute(
+            'CREATE TABLE things (id varchar(10) PRIMARY KEY, code char(5), label varchar, '
+            'flag char, stamp timestamp without time zone, zoned timestamp with time zone, '
+            'clock time, amount numeric(10,2))'
+        )
+    desired = JsonStructureProducer({'db': 'logical', 'schemas': [{'name': schema, 'tables': [
+        {'name': 'things', 'pkey': 'id', 'columns': [
+            {'name': 'id', 'dtype': 'A', 'size': '0:10'},
+            {'name': 'code', 'dtype': 'C', 'size': '5'},
+            {'name': 'label', 'dtype': 'A'},
+            {'name': 'flag', 'dtype': 'C'},
+            {'name': 'stamp', 'dtype': 'DH'},
+            {'name': 'zoned', 'dtype': 'DHZ'},
+            {'name': 'clock', 'dtype': 'H'},
+            {'name': 'amount', 'dtype': 'N', 'size': '10,2'},
+        ]},
+    ]}]}).get_json_struct()
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=[schema])
+    try:
+        assert plan_migration(db, desired)['empty']
+    finally:
+        db.closeConnection()
+
+
+@pytest.mark.parametrize('schema', ['main', 'mail'])
+def test_new_tables_use_legacy_type_names(tmp_path, schema):
+    path = tmp_path / 'base.db'
+    desired = JsonStructureProducer({'db': 'logical', 'schemas': [{'name': schema, 'tables': [
+        {'name': 'things', 'pkey': 'id', 'columns': [
+            {'name': 'id', 'dtype': 'A', 'size': '0:10'},
+            {'name': 'code', 'dtype': 'C', 'size': '5'},
+            {'name': 'stamp', 'dtype': 'DH'},
+            {'name': 'zoned', 'dtype': 'DHZ'},
+            {'name': 'clock', 'dtype': 'H'},
+        ]},
+    ]}]}).get_json_struct()
+    db = SqliteDatabase({'dbname': str(path)}, application_schemas=[schema])
+    try:
+        apply(db, desired)
+        declared = db.execute(f'PRAGMA {schema}.table_info(things)').fetchall()
+        assert [row[2] for row in declared] == [
+            'character varying(10)', 'character(5)', 'timestamp', 'timestamp with time zone', 'time',
+        ]
+        assert plan_migration(db, desired)['empty']
+    finally:
+        db.closeConnection()
 
 
 @pytest.mark.parametrize('schema', ['main', 'mail'])
@@ -78,7 +150,7 @@ def test_main_and_attached_schema_persist(tmp_path, existing):
 def test_legacy_timestamp_preserved(tmp_path, schema, declared):
     path = tmp_path / 'base.db'
     sqlite3.connect(path).close()
-    actual = path if schema == 'main' else tmp_path / 'base_mail.db'
+    actual = path if schema == 'main' else tmp_path / 'mail.db'
     with sqlite3.connect(actual) as conn:
         conn.execute(f'CREATE TABLE tenants (id TEXT PRIMARY KEY, created_at {declared} DEFAULT CURRENT_TIMESTAMP)')
         conn.execute("INSERT INTO tenants VALUES ('kept', '2025-01-02 03:04:05')")

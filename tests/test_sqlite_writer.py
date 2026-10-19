@@ -19,8 +19,10 @@ def writer():
 
 class TestColumnSqlType:
     @pytest.mark.parametrize('dtype, size, expected', [
-        ('A', '0:100', 'varchar(100)'),
-        ('C', '5', 'char(5)'),
+        ('A', '0:100', 'character varying(100)'),
+        ('A', None, 'character varying'),
+        ('C', '5', 'character(5)'),
+        ('C', None, 'character'),
         ('T', None, 'text'),
         ('I', None, 'integer'),
         ('L', None, 'bigint'),
@@ -29,9 +31,10 @@ class TestColumnSqlType:
         ('B', None, 'boolean'),
         ('D', None, 'date'),
         ('H', None, 'time'),
-        ('DH', None, 'timestamp without time zone'),
+        ('DH', None, 'timestamp'),
         ('DHZ', None, 'timestamp with time zone'),
         ('O', None, 'blob'),
+        ('X', None, 'blob'),
         ('serial', None, 'integer'),
         ('jsonb', None, 'jsonb'),
     ])
@@ -42,7 +45,7 @@ class TestColumnSqlType:
 class TestColumnDefinition:
     def test_plain(self, writer):
         assert writer.column_sql_definition('title', 'A', size='0:100') == (
-            '"title" varchar(100)'
+            '"title" character varying(100)'
         )
 
     def test_notnull_and_default(self, writer):

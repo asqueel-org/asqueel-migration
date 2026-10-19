@@ -29,8 +29,9 @@ finds residual changes. Replan and review before retrying after a failure.
 ## SQLite
 
 `main` uses the configured database file. Other schemas use sibling files
-`<stem>_<schema>.db`; there is no `*_main.db`. This support is unreleased after
-0.2.1. Temporary/in-memory layouts are not part of the file-based facade contract.
+`<schema>.db`, as GenroPy legacy; there is no `main.db`. A missing folder of
+the main file is created with the database. The 0.2 layout `<stem>_<schema>.db`
+is not read. Temporary/in-memory layouts are not part of the file-based facade contract.
 
 New tables can declare same-schema foreign keys and composite UNIQUE constraints
 in the development branch. Additions or changes to those constraints on existing
@@ -43,8 +44,10 @@ SQLite PRAGMAs do not expose FK names or deferral clauses. The reader represents
 FK columns, target and actions, with structural names, and recovers deferral
 from the stored `CREATE TABLE` text. Standalone unique indexes also have
 limited introspection fidelity; prefer declared UNIQUE constraints for uniqueness.
-Declared type mapping is not a full SQLite affinity equivalence system. Legacy
-`TIMESTAMP` is recognized as `DH`; this does not imply arbitrary type aliases are
+Declared type mapping is not a full SQLite affinity equivalence system. New
+columns use the GenroPy legacy names (`character varying`, `character`,
+`timestamp`); the 0.2 names (`varchar`, `char`, `timestamp without time zone`)
+are read as the same dtypes. Legacy `TIMESTAMP` is recognized as `DH`; this does not imply arbitrary type aliases are
 interchangeable. SQLite integer primary keys should use `I`, not `serial`.
 
 ## PostgreSQL SERIAL4 and SERIAL8

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — unreleased
+
+- **Breaking (SQLite):** attached schemas use `<folder of the main file>/<schema>.db`,
+  as the GenroPy legacy SQLite adapter. The 0.2 layout `<stem>_<schema>.db` is no
+  longer read: rename existing schema files before upgrading.
+- Create the missing folder of the SQLite main file when the database is created.
+- Write the GenroPy legacy SQLite type names: `A` → `character varying`,
+  `C` → `character`, `DH` → `timestamp`, `X` → `blob` (`DHZ`, `H` unchanged).
+  Sizes keep their form (`character varying(n)`, `character(n)`, `numeric(p,s)`).
+- Read both the legacy names and the 0.2 names (`varchar`, `char`,
+  `timestamp without time zone`) as the same dtype: tables written by 0.2 show
+  no differences after the upgrade.
+
 ## 0.2.3 — 2026-10-18
 
 - Create SQLite foreign keys with `DEFERRABLE` / `INITIALLY DEFERRED` on new

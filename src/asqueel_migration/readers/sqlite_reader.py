@@ -20,9 +20,11 @@ namespace natively (``"schema".sqlite_master``, ``PRAGMA "schema".*``).
 Declared-type fidelity
 ----------------------
 
-:class:`SqliteWriter` emits PostgreSQL-compatible declared types and
+:class:`SqliteWriter` emits the GenroPy legacy declared types and
 SQLite returns them verbatim from ``PRAGMA table_info``; this reader
-reverses them with :data:`SQLITE_TYPES_DICT`. Parsing is
+reverses them with :data:`SQLITE_TYPES_DICT`. The names written by
+asqueel-migration 0.2 (``varchar``, ``char``, ``timestamp without time
+zone``) map to the same dtypes, so a 0.2 database shows no differences. Parsing is
 case-insensitive because SQLite upper-cases the type of an ``integer``
 rowid-alias primary key (``INTEGER``).
 
@@ -54,6 +56,8 @@ SQLITE_TYPES_DICT = {
     'blob': 'O',
     'boolean': 'B',
     'char': 'C',
+    'character': 'C',
+    'character varying': 'A',
     'date': 'D',
     'integer': 'I',
     'jsonb': 'jsonb',
@@ -126,8 +130,8 @@ class SqliteReader(BaseReader):
     def _reverse_type(self, declared):
         """Reverse a declared type text into ``(dtype, size)``.
 
-        ``varchar(100)`` -> ('A', '0:100'); ``numeric(10,2)`` -> ('N', '10,2');
-        ``char(5)`` -> ('C', '5'); unknown -> ('T', None).
+        ``character varying(100)`` -> ('A', '0:100'); ``numeric(10,2)`` -> ('N', '10,2');
+        ``character(5)`` -> ('C', '5'); unknown -> ('T', None).
         """
         if not declared:
             return 'T', None

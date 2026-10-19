@@ -1,7 +1,7 @@
 # Release Asqueel Migration
 
 Distribution: `asqueel-migration`. Python package: `asqueel_migration`.
-Repository: `asqueel-org/asqueel-migration`. Release version: `0.2.3`.
+Repository: `asqueel-org/asqueel-migration`. Release version: `0.3.0`.
 The single version source is `src/asqueel_migration/__init__.py`; Hatch reads it
 for both wheel and source archive. See [CHANGELOG.md](CHANGELOG.md).
 The retained historical tags `v0.1.0` and `v0.1.1`
@@ -43,6 +43,11 @@ environment's `site-packages`. Run `pip check`, Ruff and mypy as well.
 For PostgreSQL regressions, use the disposable server selected by
 `GNR_TEST_PG_HOST`, `GNR_TEST_PG_PORT`, `GNR_TEST_PG_USER` and
 `GNR_TEST_PG_PASSWORD`, or the existing `testing.postgresql` fixture.
+
+For 0.3.0, the SQLite schema-file layout, main-folder creation and type-name
+tests in `tests/test_sqlite_contracts.py` and `tests/test_sqlite_writer.py` must
+pass against the installed wheel. Asqueel pins `>=0.3.0,<0.4` only after 0.3.0
+is available from PyPI.
 
 For 0.2.3, the SQLite deferred foreign key tests in
 `tests/test_sqlite_contracts.py` and `tests/test_sqlite_writer.py` must pass
