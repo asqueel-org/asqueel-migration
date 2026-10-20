@@ -330,6 +330,9 @@ class ExecutorMixin:
                 result = self.db.execute(check_sql)
                 row = result.fetchone() if result else None
                 lost_count = row[0] if row else 0
+                # End the read transaction: its lock would block the DROP
+                # below, which runs on a separate connection.
+                self.db.commit()
 
                 if lost_count > 0:
                     # Data loss: preserve backup and report

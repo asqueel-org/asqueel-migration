@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.3.0 — unreleased
+## 0.3.1 — unreleased
+
+- Fix a deadlock of `verifyConversionBackups()` on PostgreSQL: the backup-column
+  read is committed before the `DROP COLUMN`, which runs on a separate
+  connection. The report keeps its shape; a failed verification still stores
+  the error text in `error`.
+
+## 0.3.0 — 2026-10-19
 
 - **Breaking (SQLite):** attached schemas use `<folder of the main file>/<schema>.db`,
   as the GenroPy legacy SQLite adapter. The 0.2 layout `<stem>_<schema>.db` is no
