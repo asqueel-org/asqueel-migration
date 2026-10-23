@@ -21,6 +21,14 @@ Every connection ATTACHes all the
 schema files and enables foreign keys, so ``"schema"."table"`` qualified
 names work natively. ``createSchemaSql`` returns the ATTACH statement (it
 depends on the path, so it lives on the adapter, not the static writer).
+
+Caller's connection
+-------------------
+
+``SqliteDatabase(..., connection=conn)`` reads and applies DDL through
+``conn`` (for example a private ``:memory:`` database) and never closes
+it. The caller has attached the schemas; applying requires ``conn`` idle,
+outside a transaction.
 """
 
 import os
@@ -97,9 +105,13 @@ class SqliteAdapter(BaseAdapter):
 
         Statements are split and executed sequentially in one transaction.
         The connection creates the main file if missing, so a migration from
-        a nonexistent database works end-to-end.
+        a nonexistent database works end-to-end. A caller's connection is
+        used instead, and must be outside a transaction.
         """
-        connection = self._connect_creating()
+        borrowed = self.database.borrowed_connection
+        if borrowed is not None and borrowed.in_transaction:
+            raise SqlMigrationError('Commit or rollback before applying a migration')
+        connection = borrowed or self._connect_creating()
         try:
             # Python's sqlite3 does not implicitly open a transaction for DDL,
             # so BEGIN must be explicit for the script to be rollback-safe.
@@ -111,7 +123,8 @@ class SqliteAdapter(BaseAdapter):
             connection.rollback()
             raise
         finally:
-            connection.close()
+            if borrowed is None:
+                connection.close()
 
     def _split_statements(self, sql):
         """Split a SQL script into executable statements, SQLite-adapting them.
@@ -154,6 +167,7 @@ class SqliteAdapter(BaseAdapter):
             self._reader = SqliteReader(
                 self.database.connection_params(),
                 schemas=self.database.schema_files(),
+                connection=self.database.borrowed_connection,
             )
         return self._reader
 
@@ -274,23 +288,31 @@ class SqliteDatabase(Database):
 
     Consumers pass ``connection_params = {'dbname': '/abs/path/base.db'}``
     and the schema lists; ``main`` uses that file and any other schema
-    ``<s>`` maps to ``<dir>/<s>.db``.
+    ``<s>`` maps to ``<dir>/<s>.db``. ``connection`` is a caller's open
+    sqlite3 connection, used for every read and DDL and never closed;
+    ``dbname`` then only names the database.
     """
 
     def __init__(self, connection_params, application_schemas=None,
-                 read_only_schemas=None, tenant_schemas=None):
+                 read_only_schemas=None, tenant_schemas=None, connection=None):
         self._connection_params = dict(connection_params)
         if 'dbname' not in self._connection_params:
             raise SqlMigrationError("connection_params must include 'dbname'")
         self._application_schemas = list(application_schemas or [])
         self._read_only_schemas = list(read_only_schemas or [])
         self._tenant_schemas = list(tenant_schemas or [])
+        self._borrowed_connection = connection
         self._adapter = SqliteAdapter(self)
-        self._connection = None
+        self._connection = connection
 
     @property
     def adapter(self):
         return self._adapter
+
+    @property
+    def borrowed_connection(self):
+        """The caller's connection, or None when the facade opens its own."""
+        return self._borrowed_connection
 
     def get_dbname(self):
         return self._connection_params['dbname']
@@ -335,6 +357,9 @@ class SqliteDatabase(Database):
             self._connection.commit()
 
     def closeConnection(self):
+        """Close the persistent connection; a caller's connection stays open."""
+        if self.borrowed_connection is not None:
+            return
         if self._connection is not None:
             self._connection.close()
         self._connection = None

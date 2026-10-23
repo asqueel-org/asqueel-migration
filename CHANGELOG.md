@@ -2,6 +2,25 @@
 
 ## 0.3.1 — unreleased
 
+- Read generated columns: `SqliteReader` uses `PRAGMA table_xinfo` and takes the
+  expression from the stored CREATE TABLE text; `PgReader` reads
+  `generation_expression`. A changed generated expression is recorded as skipped
+  `alter_generated_expression` ("explicit migration required"); expressions that
+  differ only in spacing and comments (SQLite) or in PostgreSQL deparsing are
+  equal. MySQL and SQL Server readers still omit generated expressions and record
+  nothing.
+- `SqliteDatabase(..., connection=conn)` reads and applies DDL through a caller's
+  sqlite3 connection (for example `:memory:`) and never closes it; applying
+  requires the connection outside a transaction.
+- `plan_migration` and `apply_migration` accept `force`, `backup` and
+  `ignore_constraint_name`. `apply_migration` returns `backups`, the report of
+  `verifyConversionBackups()`; with a backup column kept, the post-apply
+  comparison runs without removals.
+- A plan is not `empty` when a generated expression changed, although no SQL is
+  planned.
+- `database_for(implementation, connection_params, ...)` returns the facade of a
+  GenroPy implementation name (`postgres`, `postgres3`, `sqlite`, `mysql`, `mssql`;
+  `name:module` accepted).
 - Fix a deadlock of `verifyConversionBackups()` on PostgreSQL: the backup-column
   read is committed before the `DROP COLUMN`, which runs on a separate
   connection. The report keeps its shape; a failed verification still stores

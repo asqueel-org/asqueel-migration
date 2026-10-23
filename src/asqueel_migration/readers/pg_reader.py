@@ -60,6 +60,8 @@ SCHEMA_INFO_SQL = """
         c.column_default,
         c.numeric_precision,
         c.numeric_scale,
+        c.is_generated,
+        c.generation_expression,
         CASE WHEN c.table_name IS NOT NULL THEN col_description(
             format('%%I.%%I', c.table_schema, c.table_name)::regclass,
             c.ordinal_position
@@ -232,6 +234,8 @@ class PgReader(BaseReader):
             or a DSN string (``"postgresql://user:pass@host/dbname"``).
     """
 
+    reads_generated_expressions = True
+
     def __init__(self, connection_params=None):
         super().__init__(connection_params)
         self._conn = None
@@ -279,6 +283,7 @@ class PgReader(BaseReader):
             (schema_name, table_name, column_name, data_type,
              char_max_length, is_nullable, column_default,
              numeric_precision, numeric_scale,
+             is_generated, generation_expression,
              comment, table_comment) = row
             col = {
                 '_pg_schema_name': schema_name,
@@ -292,6 +297,7 @@ class PgReader(BaseReader):
                 '_pg_numeric_scale': numeric_scale,
                 'comment': comment,
                 '_pg_table_comment': table_comment,
+                'generated_expression': generation_expression if is_generated == 'ALWAYS' else None,
             }
             if col['sqldefault'] and col['sqldefault'].startswith('nextval('):
                 col['_pg_default'] = col.pop('sqldefault')
@@ -320,6 +326,28 @@ class PgReader(BaseReader):
                     col['dtype'] = 'serial4'
             columns.append(col)
         return columns
+
+    def same_generated_expression(self, schema_name, table_name, wanted, stored):
+        """Return True if PostgreSQL plans the two expressions to the same output.
+
+        PostgreSQL stores the expression deparsed, with casts and
+        parentheses. Its planner normalizes both without executing the
+        SELECT or changing the schema; an expression it rejects differs.
+        """
+        import psycopg  # optional dependency (postgresql extra)
+        target = f'{self.quote_identifier(schema_name)}.{self.quote_identifier(table_name)}'
+        self.connect()
+        try:
+            plan = self._fetch(
+                'EXPLAIN (VERBOSE, FORMAT JSON, COSTS OFF) '
+                f'SELECT ({wanted}), ({stored}) FROM {target}'
+            )[0][0]
+        except psycopg.Error:
+            return False
+        finally:
+            self.close()
+        output = plan[0]['Plan']['Output']
+        return len(output) == 2 and output[0] == output[1]
 
     def fetch_constraints(self, schemas):
         constraints = defaultdict(lambda: defaultdict(dict))

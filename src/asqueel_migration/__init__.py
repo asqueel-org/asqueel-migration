@@ -32,6 +32,7 @@ from asqueel_migration.adapters import (
     PgDatabase,
     SqliteAdapter,
     SqliteDatabase,
+    database_for,
 )
 from asqueel_migration.exceptions import MigrationExecutionError
 from asqueel_migration.json_producer import JsonStructureProducer
@@ -75,6 +76,7 @@ __all__ = [
     "StaleMigrationPlan",
     "UnsupportedMigration",
     "apply_migration",
+    "database_for",
     "plan_migration",
     "StructureValidator",
     "XmlStructureProducer",
