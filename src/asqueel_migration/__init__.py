@@ -58,7 +58,7 @@ from asqueel_migration.structures import (
 from asqueel_migration.validation import StructureValidator
 from asqueel_migration.xml_producer import XmlStructureProducer, struct_to_xml
 
-__version__ = "0.3.1"
+__version__ = "0.3.5"
 
 __all__ = [
     "FORMAT_VERSION",

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 — unreleased
+## 0.3.5 — unreleased
 
 - Read generated columns: `SqliteReader` uses `PRAGMA table_xinfo` and takes the
   expression from the stored CREATE TABLE text; `PgReader` reads
@@ -21,6 +21,9 @@
 - `database_for(implementation, connection_params, ...)` returns the facade of a
   GenroPy implementation name (`postgres`, `postgres3`, `sqlite`, `mysql`, `mssql`;
   `name:module` accepted).
+
+## 0.3.1 — 2026-10-20
+
 - Fix a deadlock of `verifyConversionBackups()` on PostgreSQL: the backup-column
   read is committed before the `DROP COLUMN`, which runs on a separate
   connection. The report keeps its shape; a failed verification still stores
