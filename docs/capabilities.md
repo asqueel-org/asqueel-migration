@@ -79,7 +79,9 @@ The CI integration suites exercise both backends; they are not SQLite substitute
 
 ## Interpreting a plan
 
-`empty` only means no SQL was generated. Inspect `skipped_changes` for structured
+`empty` means no SQL was generated and no generated expression changed (a
+changed generated expression plans no SQL: it is skipped as
+`alter_generated_expression` and needs an explicit migration). Inspect `skipped_changes` for structured
 omissions (`capability`, `context`, `warning`); legacy `skipped` remains a list of
 warning strings. `apply_migration` refuses any recorded unsupported change before
 DDL. Database-only objects retained by the additive contract are not omissions.

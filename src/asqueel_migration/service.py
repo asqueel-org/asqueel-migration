@@ -20,12 +20,14 @@ class UnsupportedMigration(SqlMigrationError):
     """The target cannot perform all requested operations."""
 
 
-def _prepare(database, structure, allow_removals=False):
+def _prepare(database, structure, allow_removals=False, *, force=False, backup=False,
+             ignore_constraint_name=True):
     # The legacy constructor permits deferred assignment; service operations
     # require an explicit desired schema before inspecting the database.
     if structure is None:
         raise SqlValidationError(["structure must be a dict or a JSON document containing an object"])
-    migrator = SqlMigrator(database, structure=structure, removeDisabled=not allow_removals)
+    migrator = SqlMigrator(database, structure=structure, removeDisabled=not allow_removals,
+                           force=force, backup=backup, ignore_constraint_name=ignore_constraint_name)
     migrator.prepareMigrationCommands()
     sql = migrator.getChanges()
     warnings = list(migrator.warnings)
@@ -41,35 +43,60 @@ def _prepare(database, structure, allow_removals=False):
         'sql': sql,
         'warnings': warnings,
         'allow_removals': allow_removals,
+        'force': force,
+        'backup': backup,
+        'ignore_constraint_name': ignore_constraint_name,
     }
     plan_id = hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest()
+    # A changed generated expression emits no SQL, yet the database differs.
+    empty = not sql.strip() and not any(
+        change['capability'] == 'alter_generated_expression' for change in skipped_changes)
     return migrator, {
         'plan_id': plan_id, 'sql': sql, 'warnings': warnings,
-        'skipped': skipped, 'skipped_changes': skipped_changes, 'empty': not sql.strip(),
+        'skipped': skipped, 'skipped_changes': skipped_changes, 'empty': empty,
     }
 
 
-def plan_migration(database, structure, *, allow_removals=False):
-    """Validate and plan a normalized dict/JSON document without executing DDL."""
-    return _prepare(database, structure, allow_removals)[1]
+def plan_migration(database, structure, *, allow_removals=False, force=False, backup=False,
+                   ignore_constraint_name=True):
+    """Validate and plan a normalized dict/JSON document without executing DDL.
+
+    ``force`` converts a filled column whose values may not convert (they
+    become NULL); ``backup`` keeps the old values in a backup column and
+    implies ``force``; ``ignore_constraint_name`` ignores constraint and
+    index name differences (see :class:`SqlMigrator`). ``empty`` is False
+    when SQL is planned or a generated expression changed.
+    """
+    return _prepare(database, structure, allow_removals, force=force, backup=backup,
+                    ignore_constraint_name=ignore_constraint_name)[1]
 
 
-def apply_migration(database, structure, *, expected_plan, allow_removals=False):
+def apply_migration(database, structure, *, expected_plan, allow_removals=False, force=False,
+                    backup=False, ignore_constraint_name=True):
     """Replan, require the reviewed identifier, apply and verify convergence.
 
-    Unsupported operations prevent execution. Database creation is a separate
-    operation; atomicity and failures follow the underlying adapter contract.
-    ``verified`` reports the post-apply comparison, not transactional rollback.
+    The options are those of :func:`plan_migration`. Unsupported operations
+    prevent execution. Database creation is a separate operation; atomicity
+    and failures follow the underlying adapter contract. ``backups`` is the
+    report of :meth:`SqlMigrator.verifyConversionBackups`: the backup columns
+    kept because values were lost or could not be verified. With a backup
+    column kept, the post-apply comparison runs without removals, which
+    would drop it. ``verified`` reports that comparison, not transactional
+    rollback.
     """
-    migrator, plan = _prepare(database, structure, allow_removals)
+    migrator, plan = _prepare(database, structure, allow_removals, force=force, backup=backup,
+                              ignore_constraint_name=ignore_constraint_name)
     if not expected_plan or expected_plan != plan['plan_id']:
         raise StaleMigrationPlan('The migration plan changed; request and review a new plan')
     if plan['skipped']:
         raise UnsupportedMigration('; '.join(plan['skipped']))
     execution = migrator.applyChanges()
-    remaining = plan_migration(database, structure, allow_removals=allow_removals)
+    backups = migrator.verifyConversionBackups()
+    remaining = plan_migration(database, structure, allow_removals=allow_removals and not backups,
+                               ignore_constraint_name=ignore_constraint_name)
     return {
         **plan, 'execution': execution, 'warnings': list(migrator.warnings),
+        'backups': backups,
         'verified': remaining['empty'] and not remaining['skipped'],
         'remaining': remaining,
     }

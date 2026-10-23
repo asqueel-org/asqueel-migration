@@ -129,12 +129,25 @@ A plan contains:
 
 | Field | Meaning |
 | --- | --- |
-| `plan_id` | Fingerprint of the inspected destination, current and desired structures, generated SQL, warnings and removal policy |
+| `plan_id` | Fingerprint of the inspected destination, current and desired structures, generated SQL, warnings, removal policy and options |
 | `sql` | Commands proposed for execution |
 | `warnings` | Diagnostics, including features the target cannot represent |
 | `skipped` | Unsupported features or operations omitted from the plan (legacy strings) |
 | `skipped_changes` | Structured omissions: `capability`, `context`, `warning` (unreleased after 0.2.1) |
-| `empty` | Whether the generated SQL is empty; check `skipped` as well |
+| `empty` | No SQL is planned and no generated expression changed; check `skipped` as well |
+
+Both functions accept the `SqlMigrator` options `force` (convert a filled
+column even if values become NULL), `backup` (keep the old values in a backup
+column; implies `force`) and `ignore_constraint_name` (default `True`). Pass
+the same options to `apply_migration` as to the reviewed plan. Its result adds
+`backups`, the report of `verifyConversionBackups()`: one entry per backup
+column kept because values were lost or the check failed.
+
+`database_for(implementation, connection_params, application_schemas=...)`
+returns the facade of a GenroPy implementation name (`postgres`, `postgres3`,
+`sqlite`, `mysql`, `mssql`). `SqliteDatabase(..., connection=conn)` (or
+`database_for('sqlite', ..., connection=conn)`) migrates through a caller's
+sqlite3 connection with its schemas already attached, and never closes it.
 
 Keep the `plan_id` together with the desired document and removal policy that
 were reviewed. The database facade can be closed after planning and recreated

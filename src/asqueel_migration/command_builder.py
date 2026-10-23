@@ -461,7 +461,10 @@ class CommandBuilderMixin:
 
         **unique**: Addition or removal of UNIQUE constraint.
 
-        **generated_expression, extra_sql**: Ignored (not auto-migratable).
+        **generated_expression**: Never altered; recorded as skipped
+        ``alter_generated_expression`` (see ``changed_generated_expression``).
+
+        **extra_sql**: Ignored (not auto-migratable).
 
         Args:
             item: Column dictionary with all updated attributes.
@@ -534,9 +537,33 @@ class CommandBuilderMixin:
                 )
             )
 
-        elif changed_attribute in ('generated_expression', 'extra_sql'):
-            # These attributes are not automatically migratable
+        elif changed_attribute == 'generated_expression':
+            self.changed_generated_expression(item, oldvalue, newvalue)
+
+        elif changed_attribute == 'extra_sql':
+            # Not automatically migratable
             return
+
+    def changed_generated_expression(self, item, oldvalue, newvalue):
+        """Record a generated expression change as skipped.
+
+        No dialect alters a generated expression in place: the change needs
+        an explicit migration. Texts that the reader judges equal (spacing,
+        comments, PostgreSQL deparsing) are no change. A reader that does
+        not read generated expressions reports none, so its columns always
+        differ and nothing is recorded.
+        """
+        reader = self.db.adapter.reader
+        if not reader.reads_generated_expressions:
+            return
+        schema_name, table_name = item['schema_name'], item['table_name']
+        if oldvalue and newvalue and reader.same_generated_expression(
+                schema_name, table_name, newvalue, oldvalue):
+            return
+        self.record_skipped(
+            'alter_generated_expression',
+            f"{schema_name}.{table_name}.{item['entity_name']}; explicit migration required"
+        )
 
     def dropColumnUniqueness(self, item, table_dict):
         """Legacy #1425: drop every actual object enforcing column uniqueness."""

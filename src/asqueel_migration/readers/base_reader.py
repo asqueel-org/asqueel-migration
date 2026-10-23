@@ -47,6 +47,9 @@ class BaseReader(ABC):
     """
 
     col_json_keys = COL_JSON_KEYS
+    #: True when ``fetch_base_structure`` reads ``generated_expression``; such
+    #: a reader also implements ``same_generated_expression``.
+    reads_generated_expressions = False
     quote_identifier = staticmethod(quote_identifier)
 
     def __init__(self, connection_params=None):

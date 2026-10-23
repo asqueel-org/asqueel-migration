@@ -32,6 +32,7 @@ from asqueel_migration.adapters import (
     PgDatabase,
     SqliteAdapter,
     SqliteDatabase,
+    database_for,
 )
 from asqueel_migration.exceptions import MigrationExecutionError
 from asqueel_migration.json_producer import JsonStructureProducer
@@ -57,7 +58,7 @@ from asqueel_migration.structures import (
 from asqueel_migration.validation import StructureValidator
 from asqueel_migration.xml_producer import XmlStructureProducer, struct_to_xml
 
-__version__ = "0.3.1"
+__version__ = "0.3.5"
 
 __all__ = [
     "FORMAT_VERSION",
@@ -75,6 +76,7 @@ __all__ = [
     "StaleMigrationPlan",
     "UnsupportedMigration",
     "apply_migration",
+    "database_for",
     "plan_migration",
     "StructureValidator",
     "XmlStructureProducer",

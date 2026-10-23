@@ -36,6 +36,8 @@ v1 limitations
   declare integer PKs as ``I``.
 - Foreign keys are read from PRAGMAs, which omit names and deferral options.
   Deferral options are recovered from the stored CREATE TABLE text.
+- ``PRAGMA table_xinfo`` flags generated columns but omits their
+  expression: it is recovered from the stored CREATE TABLE text.
 - CHECK constraints are not introspected.
 """
 
@@ -47,6 +49,7 @@ from collections import defaultdict
 from asqueel_migration.exceptions import (
     NonExistingDbException,
     SqlConnectionException,
+    SqlMigrationError,
 )
 from asqueel_migration.readers.base_reader import BaseReader
 
@@ -72,6 +75,12 @@ SQLITE_TYPES_DICT = {
     'varchar': 'A',
 }
 
+# Literals and quoted identifiers, comments, then runs of other text.
+_SQL_PIECES = re.compile(
+    r"'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]"
+    r"|--[^\r\n]*|/\*[\s\S]*?\*/|(?:[^-/'\"`\[]|-(?!-)|/(?!\*))+"
+)
+
 
 class SqliteReader(BaseReader):
     """SQLite introspection reader.
@@ -85,9 +94,12 @@ class SqliteReader(BaseReader):
             flow with the schema-name list.
     """
 
-    def __init__(self, connection_params=None, schemas=None):
+    reads_generated_expressions = True
+
+    def __init__(self, connection_params=None, schemas=None, connection=None):
         super().__init__(connection_params)
         self._conn = None
+        self._borrowed = connection
         self.schema_files = dict(schemas or {})
 
     def dbname(self):
@@ -99,8 +111,12 @@ class SqliteReader(BaseReader):
 
         A missing main database file raises :class:`NonExistingDbException`
         (``sqlite3.connect`` would silently create it); any other failure
-        raises :class:`SqlConnectionException`.
+        raises :class:`SqlConnectionException`. A caller's connection
+        (``connection``) is used as it is: the caller has attached the schemas.
         """
+        if self._borrowed is not None:
+            self._conn = self._borrowed
+            return
         dbname = self.dbname()
         if not os.path.exists(dbname):
             raise NonExistingDbException(dbname)
@@ -117,10 +133,10 @@ class SqliteReader(BaseReader):
             raise SqlConnectionException(dbname, original_error=error) from error
 
     def close(self):
-        """Close the database connection if open."""
-        if self._conn:
+        """Close the database connection if open; a caller's connection stays open."""
+        if self._conn and self._conn is not self._borrowed:
             self._conn.close()
-            self._conn = None
+        self._conn = None
 
     def _fetch(self, sql, params=None):
         """Execute a query and return the rows as tuples."""
@@ -168,10 +184,14 @@ class SqliteReader(BaseReader):
                 })
                 continue
             for (table_name,) in tables:
+                expressions = None
                 for row in self._fetch(
-                    f'PRAGMA {self.quote_identifier(schema_name)}.table_info({self.quote_identifier(table_name)})'
+                    f'PRAGMA {self.quote_identifier(schema_name)}.table_xinfo({self.quote_identifier(table_name)})'
                 ):
-                    _cid, name, declared, notnull, dflt, _pk = row
+                    _cid, name, declared, notnull, dflt, _pk, hidden = row
+                    # hidden: 1 virtual-table hidden column, 2 virtual generated, 3 stored generated.
+                    if hidden == 1:
+                        continue
                     dtype, size = self._reverse_type(declared)
                     col = {
                         '_pg_schema_name': schema_name,
@@ -183,8 +203,64 @@ class SqliteReader(BaseReader):
                     }
                     if size is not None:
                         col['size'] = size
+                    if hidden:
+                        if expressions is None:
+                            expressions = self._generated_expressions(schema_name, table_name)
+                        if name not in expressions:
+                            raise SqlMigrationError(
+                                f'Cannot introspect generated column {schema_name}.{table_name}.{name}'
+                            )
+                        col['generated_expression'] = expressions[name]
                     columns.append(col)
         return columns
+
+    def _generated_expressions(self, schema_name, table_name):
+        """Return ``{column: expression}`` of the generated columns of a table.
+
+        Each top-level definition of the stored CREATE TABLE text holding an
+        ``AS (`` clause outside literals and comments is a generated column;
+        the expression is the text between its balanced parentheses.
+        """
+        row = self._fetch(
+            f'SELECT sql FROM {self.quote_identifier(schema_name)}.sqlite_master '
+            'WHERE type=\'table\' AND name=?',
+            (table_name,),
+        )
+        result = {}
+        for text, masked in self._table_body_items(row[0][0]):
+            clause = re.search(r'\bAS\s*\(', masked, re.IGNORECASE)
+            if not clause:
+                continue
+            end, depth = clause.end(), 1
+            while end < len(masked) and depth:
+                if masked[end] == '(':
+                    depth += 1
+                elif masked[end] == ')':
+                    depth -= 1
+                end += 1
+            if depth:
+                raise SqlMigrationError(f'Cannot introspect generated expression of {schema_name}.{table_name}')
+            name = re.match(r'\s*(\S+)', masked)
+            result[self._unquote(text[name.start(1):name.end(1)])] = text[clause.end():end - 1].strip()
+        return result
+
+    def same_generated_expression(self, schema_name, table_name, wanted, stored):
+        """Return True if two generated expressions differ only in comments and spacing."""
+        return self._normalized_sql(wanted) == self._normalized_sql(stored)
+
+    @staticmethod
+    def _normalized_sql(sql):
+        """Return the tokens of an expression: comments and spacing dropped, literals kept."""
+        tokens = []
+        for match in _SQL_PIECES.finditer(sql):
+            piece = match.group()
+            if piece.startswith(('--', '/*')):
+                continue
+            if piece[:1] in '\'"`[':
+                tokens.append(piece)
+            else:
+                tokens.extend(re.findall(r'\w+|\S', piece))
+        return tokens
 
     def fetch_constraints(self, schemas):
         constraints = defaultdict(lambda: defaultdict(dict))
@@ -279,14 +355,25 @@ class SqliteReader(BaseReader):
         """Split a CREATE TABLE body into its top-level definitions.
 
         Returns a list of ``(text, masked)`` pairs: ``masked`` has the same
-        length as ``text`` with quoted content blanked, so keyword searches
-        never match inside identifiers or string literals.
+        length as ``text`` with quoted content and comments blanked, so
+        keyword searches never match inside identifiers, string literals or
+        comments.
         """
         closers = {'"': '"', "'": "'", '`': '`', '[': ']'}
         masked = []
         index = 0
         while index < len(create_sql):
             char = create_sql[index]
+            if create_sql.startswith(('--', '/*'), index):
+                if char == '-':
+                    end = create_sql.find('\n', index)
+                    end = len(create_sql) if end < 0 else end
+                else:
+                    end = create_sql.find('*/', index + 2)
+                    end = len(create_sql) if end < 0 else end + 2
+                masked.append(' ' * (end - index))
+                index = end
+                continue
             if char in closers:
                 end = create_sql.find(closers[char], index + 1)
                 while closers[char] != ']' and end + 1 < len(create_sql) and create_sql[end + 1] == char:
